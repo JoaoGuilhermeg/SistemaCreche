@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox fx:controller="com.salo.sistemacreche.controller.RelatoriosController" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      spacing="20.0" style="-fx-background-color: #f8fdf8;">
+
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+    </padding>
+
+    <Label style="-fx-text-fill: #2e7d32;" text="Relatórios">
+        <font>
+            <Font name="System Bold" size="20.0" />
+        </font>
+    </Label>
+
+    <HBox alignment="TOP_LEFT" spacing="20.0">
+        <VBox prefWidth="300.0" spacing="15.0">
+            <Label style="-fx-text-fill: #2e7d32; -fx-font-weight: bold;" text="Selecione o tipo de relatório:" />
+
+            <VBox spacing="10.0">
+                <RadioButton fx:id="radioMatriculasAtivas" style="-fx-text-fill: #2e7d32;" text="Matrículas ativas" />
+                <RadioButton fx:id="radioMatriculasVencidas" style="-fx-text-fill: #2e7d32;" text="Matrículas vencidas" />
+                <RadioButton fx:id="radioAlunosIdade" style="-fx-text-fill: #2e7d32;" text="Alunos por idade" />
+                <RadioButton fx:id="radioAlunosTurma" style="-fx-text-fill: #2e7d32;" text="Alunos por turma" />
+                <RadioButton fx:id="radioFrequencia" style="-fx-text-fill: #2e7d32;" text="Frequência mensal" />
+                <RadioButton fx:id="radioFinanceiro" style="-fx-text-fill: #2e7d32;" text="Relatório financeiro" />
+            </VBox>
+
+            <VBox spacing="10.0" style="-fx-padding: 15 0 0 0;">
+                <Label style="-fx-text-fill: #2e7d32; -fx-font-weight: bold;" text="Período:" />
+                <DatePicker fx:id="datePickerInicio" promptText="Data inicial"
+                            style="-fx-background-color: white; -fx-border-color: #c8e6c9;" />
+                <DatePicker fx:id="datePickerFim" promptText="Data final"
+                            style="-fx-background-color: white; -fx-border-color: #c8e6c9;" />
+            </VBox>
+
+            <Button fx:id="btnGerarRelatorio" mnemonicParsing="false"
+                    style="-fx-background-color: #4caf50; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 200; -fx-pref-height: 40; -fx-padding: 20 0 0 0;"
+                    text="Gerar Relatório" onAction="#gerarRelatorio"/>
+        </VBox>
+
+        <VBox prefWidth="600.0" spacing="15.0" style="-fx-background-color: white; -fx-border-color: #e8f5e8; -fx-border-width: 1; -fx-border-radius: 5; -fx-padding: 20;">
+            <Label style="-fx-text-fill: #2e7d32; -fx-font-weight: bold;" text="Pré-visualização do Relatório">
+                <font>
+                    <Font size="16.0" />
+                </font>
+            </Label>
+
+            <TextArea fx:id="textAreaRelatorio" editable="false" prefHeight="350.0" prefWidth="550.0"
+                      style="-fx-background-color: #f9f9f9; -fx-border-color: #e8f5e8;" wrapText="true" />
+
+            <HBox alignment="CENTER_RIGHT" spacing="10.0" style="-fx-padding: 10 0 0 0;">
+                <Button fx:id="btnExportarPdf" mnemonicParsing="false"
+                        style="-fx-background-color: #4caf50; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 120; -fx-pref-height: 35;"
+                        text="Exportar PDF" onAction="#exportarPdf"/>
+                <Button fx:id="btnImprimir" mnemonicParsing="false"
+                        style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 100; -fx-pref-height: 35;"
+                        text="Imprimir" onAction="#imprimirRelatorio"/>
+            </HBox>
+        </VBox>
+    </HBox>
+</VBox>
