@@ -109,9 +109,43 @@ public class PreMatriculaCard extends VBox {
 
     private void toggleAcoesVisiveis() {
         boolean novaVisibilidade = !boxAcoes.isVisible();
-        boxAcoes.setVisible(novaVisibilidade);
-        boxAcoes.setManaged(novaVisibilidade);
+
+        if (novaVisibilidade) {
+            // Torna visível antes da animação
+            boxAcoes.setVisible(true);
+            boxAcoes.setManaged(true);
+
+            // Transição de aparecimento (fade + deslizar)
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(250), boxAcoes);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+
+            TranslateTransition slideDown = new TranslateTransition(Duration.millis(250), boxAcoes);
+            slideDown.setFromY(-5);
+            slideDown.setToY(0);
+
+            fadeIn.play();
+            slideDown.play();
+        } else {
+            // Transição de saída (fade + deslizar)
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(200), boxAcoes);
+            fadeOut.setFromValue(1);
+            fadeOut.setToValue(0);
+
+            TranslateTransition slideUp = new TranslateTransition(Duration.millis(200), boxAcoes);
+            slideUp.setFromY(0);
+            slideUp.setToY(-5);
+
+            fadeOut.setOnFinished(e -> {
+                boxAcoes.setVisible(false);
+                boxAcoes.setManaged(false);
+            });
+
+            fadeOut.play();
+            slideUp.play();
+        }
     }
+
 
     private void applyStyles() {
         // Card
