@@ -286,8 +286,7 @@ public class CadastroMatriculaController {
 
             // Se salvou, você pode adicionar à lista ou fazer algo com os dados
             if (controller.isSalvo()) {
-                System.out.println("Responsável salvo: " + controller.getNome());
-                // Adicionar à lista ou tabela
+
             }
 
         } catch (IOException e) {
