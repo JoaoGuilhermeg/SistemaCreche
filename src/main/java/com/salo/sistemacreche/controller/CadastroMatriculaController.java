@@ -1,5 +1,6 @@
 package com.salo.sistemacreche.controller;
 
+import com.salo.sistemacreche.controller.extracadastro.FiliacaoResponsavelController;
 import com.salo.sistemacreche.dao.DBConnection;
 import com.salo.sistemacreche.entidades.Alergia;
 import com.salo.sistemacreche.entidades.ClassificacaoEspecial;
@@ -8,8 +9,14 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.util.List;
 
 public class CadastroMatriculaController {
@@ -23,9 +30,7 @@ public class CadastroMatriculaController {
     @FXML private TextField fieldSus;
     @FXML private TextField fieldUnidadeSaude;
     @FXML private ComboBox<String> comboRestricaoAlimentar;
-    @FXML private ComboBox<String> comboAlergia;
     @FXML private ComboBox<String> comboMobilidadeReduzida;
-    @FXML private ComboBox<String> comboDeficienciasMultiplas;
     @FXML private ComboBox<String> comboEducacaoEspecial;
 
     // Combos que virão do banco
@@ -108,7 +113,7 @@ public class CadastroMatriculaController {
 
     private void configurarComboBoxFixos() {
         comboSexo.setItems(FXCollections.observableArrayList(
-                "Masculino", "Feminino"
+                "Masculino", "Feminino", "Outro"
         ));
 
         comboCorRaca.setItems(FXCollections.observableArrayList(
@@ -119,16 +124,9 @@ public class CadastroMatriculaController {
                 "Não", "Sim"
         ));
 
-        comboAlergia.setItems(FXCollections.observableArrayList(
-                "Não", "Sim"
-        ));
 
         comboMobilidadeReduzida.setItems(FXCollections.observableArrayList(
                 "Não", "Sim, temporária", "Sim, permanente"
-        ));
-
-        comboDeficienciasMultiplas.setItems(FXCollections.observableArrayList(
-                "Não", "Sim"
         ));
 
         comboEducacaoEspecial.setItems(FXCollections.observableArrayList(
@@ -173,14 +171,15 @@ public class CadastroMatriculaController {
         try {
             em = DBConnection.getEntityManager();
 
+            // Query com ordenação personalizada para "Nenhum" ficar primeiro
             TypedQuery<ClassificacaoEspecial> query = em.createQuery(
-                    "SELECT c FROM ClassificacaoEspecial c WHERE c.statusClassificacaoEspecial = true ORDER BY c.classificacaoEspecial",
+                    "SELECT c FROM ClassificacaoEspecial c WHERE c.statusClassificacaoEspecial = true " +
+                            "ORDER BY CASE WHEN c.classificacaoEspecial = 'Nenhum' THEN 0 ELSE 1 END, c.classificacaoEspecial",
                     ClassificacaoEspecial.class
             );
 
             List<ClassificacaoEspecial> classificacoes = query.getResultList();
 
-            // Converter para lista de strings para o ComboBox
             List<String> nomesClassificacoes = classificacoes.stream()
                     .map(ClassificacaoEspecial::getClassificacaoEspecial)
                     .toList();
@@ -192,11 +191,7 @@ public class CadastroMatriculaController {
         } catch (Exception e) {
             System.err.println("❌ Erro ao carregar classificações especiais: " + e.getMessage());
             e.printStackTrace();
-
-            // Opção fallback caso haja erro
-            comboClassificacaoEspecial.setItems(FXCollections.observableArrayList(
-                    "Altas Habilidades", "Deficiência Física", "Deficiência Visual"
-            ));
+            comboClassificacaoEspecial.setItems(FXCollections.observableArrayList("Nenhum"));
         } finally {
             if (em != null && em.isOpen()) {
                 em.close();
@@ -210,13 +205,13 @@ public class CadastroMatriculaController {
             em = DBConnection.getEntityManager();
 
             TypedQuery<Alergia> query = em.createQuery(
-                    "SELECT a FROM Alergia a ORDER BY a.nome_Alergia",
+                    "SELECT a FROM Alergia a " +
+                            "ORDER BY CASE WHEN a.nomeAlergia = 'Nenhum' THEN 0 ELSE 1 END, a.nomeAlergia",
                     Alergia.class
             );
 
             List<Alergia> alergias = query.getResultList();
 
-            // Converter para lista de strings para o ComboBox
             List<String> nomesAlergias = alergias.stream()
                     .map(Alergia::getNomeAlergia)
                     .toList();
@@ -228,11 +223,7 @@ public class CadastroMatriculaController {
         } catch (Exception e) {
             System.err.println("❌ Erro ao carregar alergias: " + e.getMessage());
             e.printStackTrace();
-
-            // Opção fallback caso haja erro
-            comboAlergias.setItems(FXCollections.observableArrayList(
-                    "Leite", "Ovo", "Amendoim", "Glúten"
-            ));
+            comboAlergias.setItems(FXCollections.observableArrayList("Nenhum"));
         } finally {
             if (em != null && em.isOpen()) {
                 em.close();
@@ -246,13 +237,13 @@ public class CadastroMatriculaController {
             em = DBConnection.getEntityManager();
 
             TypedQuery<TipoAuxilio> query = em.createQuery(
-                    "SELECT t FROM TipoAuxilio t ORDER BY t.nomeAuxilio",
+                    "SELECT t FROM TipoAuxilio t " +
+                            "ORDER BY CASE WHEN t.nomeAuxilio = 'Nenhum' THEN 0 ELSE 1 END, t.nomeAuxilio",
                     TipoAuxilio.class
             );
 
             List<TipoAuxilio> tiposAuxilio = query.getResultList();
 
-            // Converter para lista de strings para o ComboBox
             List<String> nomesAuxilios = tiposAuxilio.stream()
                     .map(TipoAuxilio::getNomeAuxilio)
                     .toList();
@@ -264,17 +255,93 @@ public class CadastroMatriculaController {
         } catch (Exception e) {
             System.err.println("❌ Erro ao carregar tipos de auxílio: " + e.getMessage());
             e.printStackTrace();
-
-            // Opção fallback caso haja erro
-            comboTipoAuxilio.setItems(FXCollections.observableArrayList(
-                    "Bolsa Família", "Auxílio Brasil", "BPC - LOAS"
-            ));
+            comboTipoAuxilio.setItems(FXCollections.observableArrayList("Nenhum"));
         } finally {
             if (em != null && em.isOpen()) {
                 em.close();
             }
         }
     }
+
+    // Métodos para abrir os modais
+    @FXML
+    private void abrirCadastroResponsavel() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/salo/sistemacreche/extracadastro/filiaçãoResponsavel.fxml"));
+            Parent root = loader.load();
+
+            FiliacaoResponsavelController controller = loader.getController();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Cadastro de Responsável");
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.initOwner(btnSalvar.getScene().getWindow());
+
+            Scene scene = new Scene(root);
+            dialogStage.setScene(scene);
+
+            controller.setDialogStage(dialogStage);
+
+            dialogStage.showAndWait();
+
+            // Se salvou, você pode adicionar à lista ou fazer algo com os dados
+            if (controller.isSalvo()) {
+                System.out.println("Responsável salvo: " + controller.getNome());
+                // Adicionar à lista ou tabela
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarMensagem("Erro", "Erro ao abrir cadastro de responsável");
+        }
+    }
+
+    @FXML
+    private void abrirCadastroMembroFamiliar() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/salo/sistemacreche/extracadastro/membrofamiliar.fxml"));
+            Parent root = loader.load();
+
+            // MembroFamiliarController controller = loader.getController();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Cadastro de Membro Familiar");
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.initOwner(btnSalvar.getScene().getWindow());
+
+            Scene scene = new Scene(root);
+            dialogStage.setScene(scene);
+            dialogStage.showAndWait();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarMensagem("Erro", "Erro ao abrir cadastro de membro familiar");
+        }
+    }
+
+    @FXML
+    private void abrirCadastroPessoaAutorizada() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/salo/sistemacreche/extracadastro/pessoaautorizada.fxml"));
+            Parent root = loader.load();
+
+            // PessoaAutorizadaController controller = loader.getController();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Cadastro de Pessoa Autorizada");
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.initOwner(btnSalvar.getScene().getWindow());
+
+            Scene scene = new Scene(root);
+            dialogStage.setScene(scene);
+            dialogStage.showAndWait();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarMensagem("Erro", "Erro ao abrir cadastro de pessoa autorizada");
+        }
+    }
+
 
     @FXML
     public void salvarMatricula() {

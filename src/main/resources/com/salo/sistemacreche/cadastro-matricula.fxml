@@ -1,24 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.DatePicker?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<VBox spacing="20.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.salo.sistemacreche.controller.CadastroMatriculaController">
+<VBox spacing="20.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.salo.sistemacreche.controller.CadastroMatriculaController">
 
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
@@ -46,8 +34,7 @@
                         <RowConstraints />
                         <RowConstraints />
                         <RowConstraints />
-                        <RowConstraints maxHeight="56.0" minHeight="56.0" prefHeight="56.0" />
-                        <RowConstraints /> <!-- NOVA LINHA para combos do banco -->
+                        <RowConstraints />
                     </rowConstraints>
 
                     <children>
@@ -78,60 +65,48 @@
                             <ComboBox fx:id="comboCorRaca" prefHeight="35.0" prefWidth="341.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
                         </VBox>
 
-                        <VBox spacing="3" GridPane.columnIndex="2" GridPane.rowIndex="2">
+                        <VBox spacing="3" GridPane.rowIndex="2">
                             <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Número do SUS" />
                             <TextField fx:id="fieldSus" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
                         </VBox>
 
-                        <VBox spacing="3" GridPane.columnIndex="3" GridPane.rowIndex="2">
+                        <VBox spacing="3" GridPane.columnIndex="1" GridPane.rowIndex="2">
                             <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Unidade de Saúde" />
                             <TextField fx:id="fieldUnidadeSaude" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
                         </VBox>
 
-                        <!-- Linha 4 - Restrições Alimentares -->
+                        <!-- LINHA 3 - COMBOS DO BANCO DE DADOS -->
                         <VBox spacing="3" GridPane.columnIndex="0" GridPane.rowIndex="3">
-                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Restrição alimentar?" />
-                            <ComboBox fx:id="comboRestricaoAlimentar" prefHeight="35.0" prefWidth="297.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
+                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Deficiência" />
+                            <ComboBox fx:id="comboClassificacaoEspecial" prefHeight="35.0" prefWidth="190.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
                         </VBox>
 
-                        <!-- Linha 5 - Alergias -->
                         <VBox spacing="3" GridPane.columnIndex="1" GridPane.rowIndex="3">
-                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Alergia?" />
-                            <ComboBox fx:id="comboAlergia" prefHeight="35.0" prefWidth="296.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
+                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Alergia" />
+                            <ComboBox fx:id="comboAlergias" prefHeight="35.0" prefWidth="190.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
                         </VBox>
 
-                        <!-- Linha 6 - Mobilidade e Deficiências -->
                         <VBox spacing="3" GridPane.columnIndex="2" GridPane.rowIndex="3">
-                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Mobilidade reduzida?" />
-                            <ComboBox fx:id="comboMobilidadeReduzida" prefHeight="35.0" prefWidth="354.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
+                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Restrição Alimentar" />
+                            <ComboBox fx:id="comboRestricaoAlimentar" prefHeight="35.0" prefWidth="190.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
                         </VBox>
 
-                        <VBox spacing="3" GridPane.rowIndex="2">
-                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Deficiências múltiplas?" />
-                            <ComboBox fx:id="comboDeficienciasMultiplas" prefHeight="35.0" prefWidth="291.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
-                        </VBox>
-
-                        <!-- Linha 7 - Educação Especial e Auxílio -->
-                        <VBox spacing="3" GridPane.columnIndex="1" GridPane.rowIndex="2">
-                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Educação especial?" />
-                            <ComboBox fx:id="comboEducacaoEspecial" prefHeight="35.0" prefWidth="410.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
-                        </VBox>
-
-                        <!-- LINHA 8 - COMBOS DO BANCO DE DADOS -->
-                        <VBox spacing="3" GridPane.columnIndex="0" GridPane.rowIndex="4">
-                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Classificação Especial" />
-                            <ComboBox fx:id="comboClassificacaoEspecial" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
-                        </VBox>
-
-                        <VBox spacing="3" GridPane.columnIndex="1" GridPane.rowIndex="4">
-                            <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Tipo de Alergia" />
-                            <ComboBox fx:id="comboAlergias" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
-                        </VBox>
-
-                        <VBox spacing="3" GridPane.columnIndex="2" GridPane.rowIndex="4">
+                        <VBox spacing="3" GridPane.columnIndex="3" GridPane.rowIndex="3">
                             <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Tipo de Auxílio" />
-                            <ComboBox fx:id="comboTipoAuxilio" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
+                            <ComboBox fx:id="comboTipoAuxilio" prefHeight="35.0" prefWidth="190.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
                         </VBox>
+                  <VBox layoutX="632.0" layoutY="224.0" spacing="3" GridPane.columnIndex="2" GridPane.rowIndex="2">
+                     <children>
+                        <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Mobilidade Reduzida" />
+                        <ComboBox fx:id="comboMobilidadeReduzida" prefHeight="35.0" prefWidth="190.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
+                     </children>
+                  </VBox>
+                  <VBox layoutX="424.0" layoutY="152.0" spacing="3" GridPane.columnIndex="3" GridPane.rowIndex="2">
+                     <children>
+                        <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Educação Especial" />
+                        <ComboBox fx:id="comboEducacaoEspecial" prefHeight="35.0" prefWidth="190.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-background-radius: 5;" />
+                     </children>
+                  </VBox>
                     </children>
                 </GridPane>
             </VBox>
@@ -152,7 +127,7 @@
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <TextField fx:id="fieldPesquisaMae" promptText="Pesquisar mãe..." style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-pref-width: 300; -fx-pref-height: 35;" />
                         <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
-                        <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 120;" text="+ Adicionar Novo" />
+                        <Button onAction="#abrirCadastroResponsavel" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 120;" text="+ Adicionar Novo" />
                     </HBox>
 
                     <!-- Lista de resultados -->
@@ -177,7 +152,7 @@
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <TextField fx:id="fieldPesquisaPai" promptText="Pesquisar pai..." style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-pref-width: 300; -fx-pref-height: 35;" />
                         <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
-                        <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 120;" text="+ Adicionar Novo" />
+                        <Button onAction="#abrirCadastroResponsavel" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5;" text="+ Adicionar Novo" />
                     </HBox>
 
                     <!-- Lista de resultados -->
@@ -202,7 +177,7 @@
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <TextField fx:id="fieldPesquisaResponsavel" promptText="Pesquisar responsável..." style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-pref-width: 300; -fx-pref-height: 35;" />
                         <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
-                        <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 120;" text="+ Adicionar Novo" />
+                        <Button onAction="#abrirCadastroResponsavel" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5;" text="+ Adicionar Novo" />
                     </HBox>
 
                     <!-- Lista de resultados -->
@@ -430,7 +405,7 @@
                 <VBox spacing="10">
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <Label style="-fx-text-fill: #0f766e;" text="Lista de moradores da casa:" />
-                        <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5;" text="+ Adicionar Morador" />
+                        <Button onAction="#abrirCadastroMembroFamiliar" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5;" text="+ Adicionar Morador" />
                     </HBox>
 
                     <!-- Tabela de composição familiar -->
@@ -505,7 +480,7 @@
                 <VBox spacing="10">
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <Label style="-fx-text-fill: #0f766e;" text="Lista de pessoas autorizadas:" />
-                        <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5;" text="+ Adicionar Pessoa" />
+                        <Button onAction="#abrirCadastroPessoaAutorizada" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5;" text="+ Adicionar Pessoa" />
                     </HBox>
 
                     <!-- Tabela de pessoas autorizadas -->
