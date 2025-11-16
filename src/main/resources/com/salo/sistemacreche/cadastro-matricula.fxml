@@ -126,19 +126,15 @@
                     <!-- Barra de pesquisa -->
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <TextField fx:id="fieldPesquisaMae" promptText="Pesquisar mãe..." style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-pref-width: 300; -fx-pref-height: 35;" />
-                        <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
+                        <Button onAction="#pesquisarMae" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
                         <Button onAction="#abrirCadastroResponsavel" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 120;" text="+ Adicionar Novo" />
                     </HBox>
 
                     <!-- Lista de resultados -->
                     <ScrollPane prefHeight="120" style="-fx-background-color: #f8f8f8; -fx-border-color: #c8e1e6;">
                         <VBox spacing="5" style="-fx-padding: 10;">
-                            <!-- Item de exemplo -->
                             <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-padding: 10;">
-                                <VBox>
-                                    <Label prefHeight="18.0" prefWidth="766.0" style="-fx-font-weight: bold;" text="Maria Silva Santos" />
-                                    <Label style="-fx-text-fill: #666;" text="CPF: 123.456.789-00" />
-                                </VBox>
+                                <VBox fx:id="cardsContainerMaes" spacing="10.0" style="-fx-background-color: #f8fdf8;" />
                             </HBox>
                         </VBox>
                     </ScrollPane>
@@ -151,19 +147,15 @@
                     <!-- Barra de pesquisa -->
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <TextField fx:id="fieldPesquisaPai" promptText="Pesquisar pai..." style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-pref-width: 300; -fx-pref-height: 35;" />
-                        <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
+                        <Button onAction="#pesquisarPai" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
                         <Button onAction="#abrirCadastroResponsavel" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5;" text="+ Adicionar Novo" />
                     </HBox>
 
                     <!-- Lista de resultados -->
                     <ScrollPane prefHeight="120" style="-fx-background-color: #f8f8f8; -fx-border-color: #c8e1e6;">
                         <VBox spacing="5" style="-fx-padding: 10;">
-                            <!-- Item de exemplo -->
                             <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-padding: 10;">
-                                <VBox>
-                                    <Label prefHeight="18.0" prefWidth="766.0" style="-fx-font-weight: bold;" text="Nilson Isaias Papinho" />
-                                    <Label style="-fx-text-fill: #666;" text="CPF: 143.256.849-09" />
-                                </VBox>
+                                <VBox fx:id="cardsContainerPais" spacing="10.0" style="-fx-background-color: #f8fdf8;" />
                             </HBox>
                         </VBox>
                     </ScrollPane>
@@ -176,7 +168,7 @@
                     <!-- Barra de pesquisa -->
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <TextField fx:id="fieldPesquisaResponsavel" promptText="Pesquisar responsável..." style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-pref-width: 300; -fx-pref-height: 35;" />
-                        <Button style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
+                        <Button onAction="#pesquisarResponsavel" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5; -fx-pref-width: 80;" text="Buscar" />
                         <Button onAction="#abrirCadastroResponsavel" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-background-radius: 5;" text="+ Adicionar Novo" />
                     </HBox>
 
@@ -185,10 +177,7 @@
                         <VBox spacing="5" style="-fx-padding: 10;">
                             <!-- Item de exemplo -->
                             <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5; -fx-padding: 10;">
-                                <VBox>
-                                    <Label prefHeight="18.0" prefWidth="766.0" style="-fx-font-weight: bold;" text="Jorge algusto ramos" />
-                                    <Label style="-fx-text-fill: #666;" text="CPF: 121.834.949-30" />
-                                </VBox>
+                                <VBox fx:id="cardsContainerResponsaveis" spacing="10.0" style="-fx-background-color: #f8fdf8;" />
                             </HBox>
                         </VBox>
                     </ScrollPane>

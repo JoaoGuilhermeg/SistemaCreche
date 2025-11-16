@@ -1,18 +1,24 @@
 package com.salo.sistemacreche.controller;
 
+import com.salo.sistemacreche.components.EmptyCard;
+import com.salo.sistemacreche.components.ResponsavelCard;
 import com.salo.sistemacreche.controller.extracadastro.FiliacaoResponsavelController;
+import com.salo.sistemacreche.controller.extracadastro.MembroFamiliarController;
+import com.salo.sistemacreche.controller.extracadastro.PessoaAutorizadaController;
 import com.salo.sistemacreche.dao.DBConnection;
-import com.salo.sistemacreche.entidades.Alergia;
-import com.salo.sistemacreche.entidades.ClassificacaoEspecial;
-import com.salo.sistemacreche.entidades.TipoAuxilio;
+import com.salo.sistemacreche.entidades.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -89,14 +95,16 @@ public class CadastroMatriculaController {
     @FXML private CheckBox checkMoto;
 
     // Seção 7: Composição Familiar
-    @FXML private TableView<?> tableComposicaoFamiliar;
+    @FXML private TableView<MembroFamilia> tableComposicaoFamiliar;
+    private ObservableList<MembroFamilia> membrosFamiliares = FXCollections.observableArrayList();
 
     // Seção 8: Série
     @FXML private ComboBox<String> comboSerie;
     @FXML private TextField fieldAnoLetivo;
 
     // Seção 9: Pessoas Autorizadas
-    @FXML private TableView<?> tablePessoasAutorizadas;
+    @FXML private TableView<PessoaAutorizada> tablePessoasAutorizadas;
+    private ObservableList<PessoaAutorizada> pessoaAutorizadas = FXCollections.observableArrayList();
 
     // Seção 11: Irmão Gêmeo
     @FXML private CheckBox checkIrmaoGemeo;
@@ -105,10 +113,19 @@ public class CadastroMatriculaController {
     @FXML private Button btnSalvar;
     @FXML private Button btnCancelar;
 
+    @FXML private VBox cardsContainerMaes;
+    @FXML private VBox cardsContainerPais;
+    @FXML private VBox cardsContainerResponsaveis;
+
     @FXML
     public void initialize() {
         configurarComboBoxFixos();
         carregarDadosDoBanco();
+        pesquisarMae();
+        pesquisarPai();
+        pesquisarResponsavel();
+        configurarPesquisaPorEnter();
+        configurarTableViews();
     }
 
     private void configurarComboBoxFixos() {
@@ -123,7 +140,6 @@ public class CadastroMatriculaController {
         comboRestricaoAlimentar.setItems(FXCollections.observableArrayList(
                 "Não", "Sim"
         ));
-
 
         comboMobilidadeReduzida.setItems(FXCollections.observableArrayList(
                 "Não", "Sim, temporária", "Sim, permanente"
@@ -263,6 +279,212 @@ public class CadastroMatriculaController {
         }
     }
 
+    // === PESQUISAR MÃES ===
+    @FXML
+    private void pesquisarMae() {
+        String termoPesquisa = fieldPesquisaMae.getText().trim();
+
+        if (termoPesquisa.isEmpty()) {
+            carregarMaes();
+        } else {
+            // Pesquisa mães pelo nome
+            pesquisarResponsaveisPorTipoENome(2L, termoPesquisa, cardsContainerMaes, "Nenhuma mãe encontrada");
+        }
+    }
+
+    // === PESQUISAR PAIS ===
+    @FXML
+    private void pesquisarPai() {
+        String termoPesquisa = fieldPesquisaPai.getText().trim();
+
+        if (termoPesquisa.isEmpty()) {
+            // Se campo vazio, carrega todos os pais
+            carregarPais();
+        } else {
+            // Pesquisa pais pelo nome
+            pesquisarResponsaveisPorTipoENome(1L, termoPesquisa, cardsContainerPais, "Nenhum pai encontrado");
+        }
+    }
+
+    // === PESQUISAR RESPONSÁVEIS ===
+    @FXML
+    private void pesquisarResponsavel() {
+        String termoPesquisa = fieldPesquisaResponsavel.getText().trim();
+
+        if (termoPesquisa.isEmpty()) {
+            carregarResponsaveis();
+        } else {
+            pesquisarResponsaveisPorTipoENome(3L, termoPesquisa, cardsContainerResponsaveis, "Nenhum responsável encontrado");
+        }
+    }
+
+    // === MÉTODO GENÉRICO PARA PESQUISAR POR TIPO E NOME ===
+    private void pesquisarResponsaveisPorTipoENome(Long tipoId, String termoPesquisa, VBox container, String mensagemVazio) {
+        EntityManager em = null;
+        try {
+            em = DBConnection.getEntityManager();
+
+            List<Responsavel> resultados = em.createQuery(
+                            "SELECT r FROM Responsavel r " +
+                                    "JOIN FETCH r.pessoa p " +
+                                    "JOIN r.tipoResponsavel tr " +
+                                    "WHERE tr.id = :tipoId " +
+                                    "AND (UPPER(p.nome) LIKE UPPER(:termo) " +
+                                    "     OR UPPER(p.cpf) LIKE UPPER(:termo)) " +
+                                    "ORDER BY p.nome",
+                            Responsavel.class
+                    )
+                    .setParameter("tipoId", tipoId)
+                    .setParameter("termo", "%" + termoPesquisa + "%")
+                    .setMaxResults(10)
+                    .getResultList();
+
+            atualizarCardsContainer(container, resultados, mensagemVazio);
+
+            System.out.println("🔍 " + resultados.size() + " resultado(s) encontrado(s) para: " + termoPesquisa);
+
+        } catch (Exception e) {
+            System.err.println("❌ Erro na pesquisa: " + e.getMessage());
+            e.printStackTrace();
+            limparContainerComMensagem(container, "Erro na pesquisa");
+        } finally {
+            if (em != null && em.isOpen()) em.close();
+        }
+    }
+
+    // === CARREGAR MÃES ===
+    private void carregarMaes() {
+        EntityManager em = null;
+        try {
+            em = DBConnection.getEntityManager();
+
+            List<Responsavel> maes = em.createQuery(
+                    "SELECT r FROM Responsavel r " +
+                            "JOIN FETCH r.pessoa p " +
+                            "JOIN r.tipoResponsavel tr " +
+                            "WHERE tr.id = 2 " + // Mãe
+                            "ORDER BY r.id DESC",
+                    Responsavel.class
+            ).setMaxResults(5).getResultList();
+
+            atualizarCardsContainer(cardsContainerMaes, maes, "Nenhuma mãe cadastrada");
+            System.out.println("✅ " + maes.size() + " mãe(s) carregada(s)");
+
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao carregar mães: " + e.getMessage());
+            limparContainerComMensagem(cardsContainerMaes, "Erro ao carregar mães");
+        } finally {
+            if (em != null && em.isOpen()) em.close();
+        }
+    }
+
+    // === CARREGAR PAIS ===
+    private void carregarPais() {
+        EntityManager em = null;
+        try {
+            em = DBConnection.getEntityManager();
+
+            List<Responsavel> pais = em.createQuery(
+                    "SELECT r FROM Responsavel r " +
+                            "JOIN FETCH r.pessoa p " +
+                            "JOIN r.tipoResponsavel tr " +
+                            "WHERE tr.id = 1 " + // Pai
+                            "ORDER BY r.id DESC",
+                    Responsavel.class
+            ).setMaxResults(5).getResultList();
+
+            atualizarCardsContainer(cardsContainerPais, pais, "Nenhum pai cadastrado");
+            System.out.println("✅ " + pais.size() + " pai(s) carregado(s)");
+
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao carregar pais: " + e.getMessage());
+            limparContainerComMensagem(cardsContainerPais, "Erro ao carregar pais");
+        } finally {
+            if (em != null && em.isOpen()) em.close();
+        }
+    }
+
+    // === CARREGAR RESPONSÁVEIS ===
+    private void carregarResponsaveis() {
+        EntityManager em = null;
+        try {
+            em = DBConnection.getEntityManager();
+
+            List<Responsavel> responsaveis = em.createQuery(
+                    "SELECT r FROM Responsavel r " +
+                            "JOIN FETCH r.pessoa p " +
+                            "JOIN r.tipoResponsavel tr " +
+                            "WHERE tr.id = 3 " + // Responsável
+                            "ORDER BY r.id DESC",
+                    Responsavel.class
+            ).setMaxResults(5).getResultList();
+
+            atualizarCardsContainer(cardsContainerResponsaveis, responsaveis, "Nenhum responsável cadastrado");
+            System.out.println("✅ " + responsaveis.size() + " responsável(eis) carregado(s)");
+
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao carregar responsáveis: " + e.getMessage());
+            limparContainerComMensagem(cardsContainerResponsaveis, "Erro ao carregar responsáveis");
+        } finally {
+            if (em != null && em.isOpen()) em.close();
+        }
+    }
+
+    // === MÉTODO GENÉRICO PARA ATUALIZAR CONTAINER ===
+    private void atualizarCardsContainer(VBox container, List<Responsavel> responsaveis, String mensagemVazio) {
+        container.getChildren().clear();
+
+        if (responsaveis == null || responsaveis.isEmpty()) {
+            EmptyCard vazio = new EmptyCard(mensagemVazio);
+            container.getChildren().add(vazio);
+        } else {
+            for (Responsavel responsavel : responsaveis) {
+                try {
+                    ResponsavelCard card = new ResponsavelCard(responsavel);
+                    //card.setOnEditAction(() -> editarResponsavel(responsavel));
+                    container.getChildren().add(card);
+                } catch (Exception e) {
+                    System.err.println("❌ Erro ao criar card: " + e.getMessage());
+                    Label erroCard = new Label("Erro ao carregar");
+                    erroCard.setStyle("-fx-background-color: #ffebee; -fx-border-color: #f44336; " +
+                            "-fx-padding: 10; -fx-border-radius: 5;");
+                    container.getChildren().add(erroCard);
+                }
+            }
+        }
+    }
+
+    // === CONFIGURAR PESQUISA POR ENTER ===
+    private void configurarPesquisaPorEnter() {
+        // Mãe
+        fieldPesquisaMae.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                pesquisarMae();
+            }
+        });
+
+        // Pai
+        fieldPesquisaPai.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                pesquisarPai();
+            }
+        });
+
+        // Responsável
+        fieldPesquisaResponsavel.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                pesquisarResponsavel();
+            }
+        });
+    }
+
+    // === MÉTODO PARA LIMPAR CONTAINER COM MENSAGEM ===
+    private void limparContainerComMensagem(VBox container, String mensagem) {
+        container.getChildren().clear();
+        EmptyCard erro = new EmptyCard(mensagem);
+        container.getChildren().add(erro);
+    }
+
     // Métodos para abrir os modais
     @FXML
     private void abrirCadastroResponsavel() {
@@ -286,7 +508,9 @@ public class CadastroMatriculaController {
 
             // Se salvou, você pode adicionar à lista ou fazer algo com os dados
             if (controller.isSalvo()) {
-
+                // Recarregar a lista de responsáveis após salvar
+                carregarResponsaveis();
+                System.out.println("✅ Responsável salvo com sucesso!");
             }
 
         } catch (IOException e) {
@@ -301,7 +525,7 @@ public class CadastroMatriculaController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/salo/sistemacreche/extracadastro/membrofamiliar.fxml"));
             Parent root = loader.load();
 
-            // MembroFamiliarController controller = loader.getController();
+            MembroFamiliarController controller = loader.getController();
 
             Stage dialogStage = new Stage();
             dialogStage.setTitle("Cadastro de Membro Familiar");
@@ -310,7 +534,16 @@ public class CadastroMatriculaController {
 
             Scene scene = new Scene(root);
             dialogStage.setScene(scene);
+
+            controller.setDialogStage(dialogStage);
+
             dialogStage.showAndWait();
+
+            // Se salvou, você pode adicionar à lista ou fazer algo com os dados
+            if (controller.isSalvo()) {
+                System.out.println("✅ Membro familiar salvo com sucesso!");
+                // TODO: Adicionar à tabela de composição familiar
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -324,7 +557,7 @@ public class CadastroMatriculaController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/salo/sistemacreche/extracadastro/pessoaautorizada.fxml"));
             Parent root = loader.load();
 
-            // PessoaAutorizadaController controller = loader.getController();
+            PessoaAutorizadaController controller = loader.getController();
 
             Stage dialogStage = new Stage();
             dialogStage.setTitle("Cadastro de Pessoa Autorizada");
@@ -333,7 +566,16 @@ public class CadastroMatriculaController {
 
             Scene scene = new Scene(root);
             dialogStage.setScene(scene);
+
+            controller.setDialogStage(dialogStage);
+
             dialogStage.showAndWait();
+
+            // Se salvou, você pode adicionar à lista ou fazer algo com os dados
+            if (controller.isSalvo()) {
+                System.out.println("✅ Pessoa autorizada salva com sucesso!");
+                // TODO: Adicionar à tabela de pessoas autorizadas
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -341,6 +583,74 @@ public class CadastroMatriculaController {
         }
     }
 
+    private void configurarTableViews() {
+        configurarTableViewComposicaoFamiliar();
+        configurarTableViewPessoasAutorizadas();
+    }
+
+    private void configurarTableViewComposicaoFamiliar() {
+        // Limpa colunas existentes
+        tableComposicaoFamiliar.getColumns().clear();
+
+        // Cria as colunas
+        TableColumn<MembroFamilia, String> colNome = new TableColumn<>("Nome");
+        colNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
+        colNome.setPrefWidth(150);
+
+        TableColumn<MembroFamilia, String> colIdade = new TableColumn<>("Idade");
+        colIdade.setCellValueFactory(new PropertyValueFactory<>("idade"));
+        colIdade.setPrefWidth(80);
+
+        TableColumn<MembroFamilia, String> colParentesco = new TableColumn<>("Parentesco");
+        colParentesco.setCellValueFactory(new PropertyValueFactory<>("parentesco"));
+        colParentesco.setPrefWidth(100);
+
+        TableColumn<MembroFamilia, String> colEscolaridade = new TableColumn<>("Escolaridade");
+        colEscolaridade.setCellValueFactory(new PropertyValueFactory<>("escolaridade"));
+        colEscolaridade.setPrefWidth(120);
+
+        TableColumn<MembroFamilia, String> colEmprego = new TableColumn<>("Emprego");
+        colEmprego.setCellValueFactory(new PropertyValueFactory<>("emprego"));
+        colEmprego.setPrefWidth(120);
+
+        TableColumn<MembroFamilia, String> colRenda = new TableColumn<>("Renda");
+        colRenda.setCellValueFactory(new PropertyValueFactory<>("renda"));
+        colRenda.setPrefWidth(100);
+
+        // Adiciona as colunas à tabela
+        tableComposicaoFamiliar.getColumns().addAll(colNome, colIdade, colParentesco, colEscolaridade, colEmprego, colRenda);
+
+        // Conecta a ObservableList com a TableView
+        tableComposicaoFamiliar.setItems(membrosFamiliares);
+    }
+
+    private void configurarTableViewPessoasAutorizadas() {
+        // Limpa colunas existentes
+        tablePessoasAutorizadas.getColumns().clear();
+
+        // Cria as colunas para pessoas autorizadas
+        TableColumn<PessoaAutorizada, String> colNome = new TableColumn<>("Nome");
+        colNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
+        colNome.setPrefWidth(150);
+
+        TableColumn<PessoaAutorizada, String> colParentesco = new TableColumn<>("Parentesco");
+        colParentesco.setCellValueFactory(new PropertyValueFactory<>("parentesco"));
+        colParentesco.setPrefWidth(100);
+
+        TableColumn<PessoaAutorizada, String> colRg = new TableColumn<>("RG");
+        colRg.setCellValueFactory(new PropertyValueFactory<>("rg"));
+        colRg.setPrefWidth(120);
+
+        TableColumn<PessoaAutorizada, String> colTelefone = new TableColumn<>("Telefone");
+        colTelefone.setCellValueFactory(new PropertyValueFactory<>("telefone"));
+        colTelefone.setPrefWidth(120);
+
+        // Adiciona as colunas à tabela
+        tablePessoasAutorizadas.getColumns().addAll(colNome, colParentesco, colRg, colTelefone);
+
+        // Conecta a ObservableList com a TableView
+        tablePessoasAutorizadas.setItems(pessoaAutorizadas);
+    }
 
     @FXML
     public void salvarMatricula() {
@@ -352,19 +662,19 @@ public class CadastroMatriculaController {
             String sexo = comboSexo.getValue();
             String serie = comboSerie.getValue();
 
-            // Capturar dados dos combos do banco
-            String classificacaoSelecionada = comboClassificacaoEspecial.getValue();
-            String alergiaSelecionada = comboAlergias.getValue();
-            String auxilioSelecionado = comboTipoAuxilio.getValue();
+            // Capturar dados das tabelas
+            System.out.println("=== COMPOSIÇÃO FAMILIAR ===");
+            for (MembroFamilia membro : membrosFamiliares) {
+                System.out.println("Membro: " + membro.getParentesco().name()+ " - " + membro.getParentesco());
+            }
 
-            System.out.println("Criança: " + nomeCrianca);
-            System.out.println("Sexo: " + sexo);
-            System.out.println("Série: " + serie);
-            System.out.println("Classificação: " + classificacaoSelecionada);
-            System.out.println("Alergia: " + alergiaSelecionada);
-            System.out.println("Auxílio: " + auxilioSelecionado);
+            System.out.println("=== PESSOAS AUTORIZADAS ===");
+            for (PessoaAutorizada pessoa : pessoaAutorizadas) {
+                System.out.println("Pessoa: " + pessoa.getPessoa().getNome() + " - " + pessoa.getParentesco());
+            }
 
             // TODO: Implementar lógica completa de salvamento no banco
+            // Incluindo membrosFamiliares e pessoasAutorizadas
 
             mostrarMensagem("Sucesso", "Matrícula cadastrada com sucesso!");
             limparFormulario();
@@ -373,7 +683,6 @@ public class CadastroMatriculaController {
 
     @FXML
     public void cancelarCadastro() {
-        System.out.println("Cancelando cadastro...");
         limparFormulario();
         // TODO: Fechar a tela ou voltar para lista
     }
@@ -441,32 +750,6 @@ public class CadastroMatriculaController {
         alert.setHeaderText(null);
         alert.setContentText(mensagem);
         alert.showAndWait();
-    }
-
-    // Métodos para ações dos botões de pesquisa (podem ser implementados depois)
-    @FXML
-    private void pesquisarMae() {
-        System.out.println("Pesquisando mãe...");
-    }
-
-    @FXML
-    private void pesquisarPai() {
-        System.out.println("Pesquisando pai...");
-    }
-
-    @FXML
-    private void pesquisarResponsavel() {
-        System.out.println("Pesquisando responsável...");
-    }
-
-    @FXML
-    private void adicionarMorador() {
-        System.out.println("Adicionando morador...");
-    }
-
-    @FXML
-    private void adicionarPessoaAutorizada() {
-        System.out.println("Adicionando pessoa autorizada...");
     }
 
     @FXML
