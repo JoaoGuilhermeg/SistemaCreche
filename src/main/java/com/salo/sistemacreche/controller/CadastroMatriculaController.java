@@ -8,6 +8,7 @@ import com.salo.sistemacreche.controller.extracadastro.PessoaAutorizadaControlle
 import com.salo.sistemacreche.dao.DBConnection;
 import com.salo.sistemacreche.entidades.*;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -539,10 +540,10 @@ public class CadastroMatriculaController {
 
             dialogStage.showAndWait();
 
-            // Se salvou, você pode adicionar à lista ou fazer algo com os dados
             if (controller.isSalvo()) {
-                System.out.println("✅ Membro familiar salvo com sucesso!");
-                // TODO: Adicionar à tabela de composição familiar
+                MembroFamiliarController.DadosMembroFamiliar dados = controller.getDadosMembro();
+                adicionarMembroFamiliar(dados);
+                System.out.println("✅ Membro familiar adicionado: " + dados.getNome());
             }
 
         } catch (IOException e) {
@@ -654,32 +655,320 @@ public class CadastroMatriculaController {
 
     @FXML
     public void salvarMatricula() {
-        if (validarCamposObrigatorios()) {
-            System.out.println("Salvando matrícula...");
+        EntityManager em = null;
+        EntityTransaction transaction = null;
 
-            // Capturar dados básicos
-            String nomeCrianca = fieldNomeCrianca.getText();
-            String sexo = comboSexo.getValue();
-            String serie = comboSerie.getValue();
-
-            // Capturar dados das tabelas
-            System.out.println("=== COMPOSIÇÃO FAMILIAR ===");
-            for (MembroFamilia membro : membrosFamiliares) {
-                System.out.println("Membro: " + membro.getParentesco().name()+ " - " + membro.getParentesco());
+        try {
+            if (!validarCamposObrigatorios()) {
+                return;
             }
 
-            System.out.println("=== PESSOAS AUTORIZADAS ===");
-            for (PessoaAutorizada pessoa : pessoaAutorizadas) {
-                System.out.println("Pessoa: " + pessoa.getPessoa().getNome() + " - " + pessoa.getParentesco());
-            }
+            em = DBConnection.getEntityManager();
+            transaction = em.getTransaction();
+            transaction.begin();
 
-            // TODO: Implementar lógica completa de salvamento no banco
-            // Incluindo membrosFamiliares e pessoasAutorizadas
+            // 1. Criar e salvar a Criança
+            Crianca crianca = criarCrianca(em);
+            em.persist(crianca);
+
+            // 2. Criar e salvar Endereço
+            Endereco endereco = criarEndereco();
+            em.persist(endereco);
+
+            // 3. Criar e salvar Matrícula
+            Matricula matricula = criarMatricula(crianca);
+            em.persist(matricula);
+
+            // 4. Salvar Membros da Família
+            salvarMembrosFamilia(em, crianca);
+
+            // 5. Salvar Pessoas Autorizadas
+            salvarPessoasAutorizadas(em, crianca);
+
+            // 6. Salvar Composição Familiar
+            salvarComposicaoFamiliar(em, crianca);
+
+            transaction.commit();
 
             mostrarMensagem("Sucesso", "Matrícula cadastrada com sucesso!");
             limparFormulario();
+
+            System.out.println("✅ Matrícula salva com ID: " + matricula.getId());
+
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            System.err.println("❌ Erro ao salvar matrícula: " + e.getMessage());
+            e.printStackTrace();
+            mostrarMensagem("Erro", "Erro ao salvar matrícula: " + e.getMessage());
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
         }
     }
+
+    private Crianca criarCrianca(EntityManager em) {
+        Crianca crianca = new Crianca();
+
+        // Dados básicos
+        crianca.setNome(fieldNomeCrianca.getText().trim());
+        crianca.setDataNascimento(java.sql.Date.valueOf(datePickerNascimento.getValue()));
+
+        // Sexo
+        String sexoValue = comboSexo.getValue();
+        if (sexoValue != null) {
+            crianca.setSexo(Crianca.Sexo.valueOf(sexoValue.toUpperCase()));
+        }
+
+        // Cor/Raça
+        String corRacaValue = comboCorRaca.getValue();
+        if (corRacaValue != null) {
+            crianca.setCorRaca(Crianca.CorRaca.valueOf(corRacaValue.toUpperCase()));
+        }
+
+        // Saúde
+        crianca.setCartSus(fieldSus.getText().trim());
+        crianca.setUnidadeSaude(fieldUnidadeSaude.getText().trim());
+
+        // Restrição alimentar
+        String restricaoValue = comboRestricaoAlimentar.getValue();
+        crianca.setRestricaoAlimentar("Sim".equals(restricaoValue));
+        if ("Sim".equals(restricaoValue)) {
+            crianca.setDescricaoRestricoesAlimentares("Restrição alimentar informada");
+        }
+
+        // Mobilidade reduzida
+        String mobilidadeValue = comboMobilidadeReduzida.getValue();
+        if (mobilidadeValue != null) {
+            if (mobilidadeValue.contains("temporária")) {
+                crianca.setMobRed(Crianca.MobRed.TEMPORARIA);
+            } else if (mobilidadeValue.contains("permanente")) {
+                crianca.setMobRed(Crianca.MobRed.PERMANENTE);
+            } else {
+                crianca.setMobRed(Crianca.MobRed.NENHUMA);
+            }
+        }
+
+        // Educação especial
+        String educacaoEspecialValue = comboEducacaoEspecial.getValue();
+        crianca.setEducEspecial("Sim".equals(educacaoEspecialValue));
+
+        // Classificação especial
+        String classificacaoValue = comboClassificacaoEspecial.getValue();
+        if (classificacaoValue != null && !classificacaoValue.equals("Nenhum")) {
+            ClassificacaoEspecial classificacao = em.createQuery(
+                    "SELECT c FROM ClassificacaoEspecial c WHERE c.classificacaoEspecial = :nome",
+                    ClassificacaoEspecial.class
+            ).setParameter("nome", classificacaoValue).getSingleResult();
+            crianca.setClassificacaoEspecial(classificacao);
+            crianca.setStatusClassificacaoEspecial(true);
+        }
+
+        // Alergias
+        String alergiaValue = comboAlergias.getValue();
+        crianca.setAlergia(alergiaValue != null && !alergiaValue.equals("Nenhum"));
+
+        // Irmão gêmeo
+        crianca.setPossuiIrmaoGemeo(checkIrmaoGemeo.isSelected());
+
+        // Documentos
+        crianca.setCertidaoNascimentoNum(fieldCertidaoNascimento.getText().trim());
+        crianca.setMunicipioNascimento(fieldMunicipioNascimento.getText().trim());
+        crianca.setCartorioRegistro(fieldCartorioRegistro.getText().trim());
+
+        // Auxílio governo
+        String auxilioValue = comboTipoAuxilio.getValue();
+        crianca.setResponsavelBeneficiarioAuxilioGov(auxilioValue != null && !auxilioValue.equals("Nenhum"));
+        if (auxilioValue != null && !auxilioValue.equals("Nenhum")) {
+            TipoAuxilio tipoAuxilio = em.createQuery(
+                    "SELECT t FROM TipoAuxilio t WHERE t.nomeAuxilio = :nome",
+                    TipoAuxilio.class
+            ).setParameter("nome", auxilioValue).getSingleResult();
+            crianca.setTipoAuxilio(tipoAuxilio);
+        }
+
+        return crianca;
+    }
+
+    private Endereco criarEndereco() {
+        Endereco endereco = new Endereco();
+
+        endereco.setLogradouro(fieldEndereco.getText().trim());
+        endereco.setNumero(fieldNumero.getText().trim());
+        endereco.setBairro(fieldBairro.getText().trim());
+        endereco.setMunicipio(fieldMunicipio.getText().trim());
+        endereco.setCep(fieldCEP.getText().trim());
+        endereco.setUf(comboUF.getValue());
+        endereco.setPontoReferencia(fieldPontoReferencia.getText().trim());
+        endereco.setTelefoneResidencial(fieldTelefoneResidencial.getText().trim());
+
+        return endereco;
+    }
+
+    private Matricula criarMatricula(Crianca crianca) {
+        Matricula matricula = new Matricula();
+
+        matricula.setCrianca(crianca);
+        matricula.setDataMatricula(new java.sql.Date(System.currentTimeMillis()));
+        matricula.setSerie(comboSerie.getValue());
+
+        // Ano letivo
+        try {
+            matricula.setAnoLetivo(Integer.parseInt(fieldAnoLetivo.getText().trim()));
+        } catch (NumberFormatException e) {
+            matricula.setAnoLetivo(java.time.LocalDate.now().getYear());
+        }
+
+        matricula.setOrientacaoRecebida(false);
+        matricula.setSituacaoMatricula(Matricula.SituacaoMatricula.ATIVA);
+
+        // Data de vencimento (1 ano a partir de hoje)
+        java.time.LocalDate hoje = java.time.LocalDate.now();
+        java.time.LocalDate vencimento = hoje.plusYears(1);
+        matricula.setDataVencimento(java.sql.Date.valueOf(vencimento));
+
+        return matricula;
+    }
+
+    private void salvarMembrosFamilia(EntityManager em, Crianca crianca) {
+        for (MembroFamilia membro : membrosFamiliares) {
+            // Cria uma nova instância para o banco
+            MembroFamilia novoMembro = new MembroFamilia();
+            novoMembro.setCrianca(crianca);
+            novoMembro.setParentesco(membro.getParentesco());
+            novoMembro.setSituacaoEscolar(membro.getSituacaoEscolar());
+            novoMembro.setSituacaoEmprego(membro.getSituacaoEmprego());
+            novoMembro.setRenda(membro.getRenda());
+
+            em.persist(novoMembro);
+        }
+
+        System.out.println("✅ " + membrosFamiliares.size() + " membro(s) familiar(es) salvo(s)");
+    }
+
+    private void salvarPessoasAutorizadas(EntityManager em, Crianca crianca) {
+        for (PessoaAutorizada pessoa : pessoaAutorizadas) {
+            // Cria uma nova instância para o banco
+            PessoaAutorizada novaPessoa = new PessoaAutorizada();
+            novaPessoa.setCrianca(crianca);
+            novaPessoa.setPessoa(pessoa.getPessoa());
+            novaPessoa.setParentesco(pessoa.getParentesco());
+            novaPessoa.setTelefone(pessoa.getTelefone());
+
+            em.persist(novaPessoa);
+        }
+
+        System.out.println("✅ " + pessoaAutorizadas.size() + " pessoa(s) autorizada(s) salva(s)");
+    }
+
+    private void salvarComposicaoFamiliar(EntityManager em, Crianca crianca) {
+        ComposicaoFamiliar composicao = new ComposicaoFamiliar();
+        composicao.setCrianca(crianca);
+
+        // Calcula renda familiar total
+        java.math.BigDecimal rendaTotal = java.math.BigDecimal.ZERO;
+        for (MembroFamilia membro : membrosFamiliares) {
+            if (membro.getRenda() != null) {
+                rendaTotal = rendaTotal.add(membro.getRenda());
+            }
+        }
+        composicao.setRendaFamiliarTotal(rendaTotal);
+
+        // Calcula renda per capita
+        int totalMembros = membrosFamiliares.size() + 1; // +1 para a criança
+        if (totalMembros > 0) {
+            java.math.BigDecimal rendaPerCapita = rendaTotal.divide(
+                    new java.math.BigDecimal(totalMembros), 2, java.math.RoundingMode.HALF_UP
+            );
+            composicao.setRendaPerCapita(rendaPerCapita);
+        } else {
+            composicao.setRendaPerCapita(java.math.BigDecimal.ZERO);
+        }
+
+        composicao.setTotalMembros(totalMembros);
+
+        em.persist(composicao);
+        System.out.println("✅ Composição familiar salva");
+    }
+
+    // Método para adicionar membro familiar à tabela
+    public void adicionarMembroFamiliar(MembroFamiliarController.DadosMembroFamiliar dados) {
+        try {
+            MembroFamilia membro = new MembroFamilia();
+
+            // Converte string para enum Parentesco
+            MembroFamilia.Parentesco parentesco = MembroFamilia.Parentesco.valueOf(
+                    dados.getParentesco().toUpperCase().replace("Ã", "A")
+            );
+            membro.setParentesco(parentesco);
+
+            // Converte string para enum SituacaoEscolar (você precisará mapear isso)
+            MembroFamilia.SituacaoEscolar escolaridade = converterParaSituacaoEscolar(dados.getEscolaridade());
+            membro.setSituacaoEscolar(escolaridade);
+
+            // Converte string para enum SituacaoEmprego
+            MembroFamilia.SituacaoEmprego emprego = converterParaSituacaoEmprego(dados.getEmprego());
+            membro.setSituacaoEmprego(emprego);
+
+            // Converte renda para BigDecimal
+            if (!dados.getRenda().isEmpty()) {
+                membro.setRenda(new java.math.BigDecimal(dados.getRenda()));
+            } else {
+                membro.setRenda(java.math.BigDecimal.ZERO);
+            }
+
+            membrosFamiliares.add(membro);
+            tableComposicaoFamiliar.refresh();
+
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao adicionar membro familiar: " + e.getMessage());
+            mostrarMensagem("Erro", "Erro ao adicionar membro familiar");
+        }
+    }
+
+    // Método para adicionar pessoa autorizada à tabela
+    public void adicionarPessoaAutorizada(PessoaAutorizadaController.DadosPessoaAutorizada dados) {
+        try {
+            PessoaAutorizada pessoa = new PessoaAutorizada();
+
+            // Cria uma nova Pessoa
+            Pessoa novaPessoa = new Pessoa();
+            novaPessoa.setNome(dados.getNome());
+            novaPessoa.setRg(dados.getRg());
+            novaPessoa.setTelefone(dados.getTelefone());
+            // Você precisará definir outros campos obrigatórios da Pessoa
+
+            pessoa.setPessoa(novaPessoa);
+
+            // Converte string para enum Parentesco
+            PessoaAutorizada.Parentesco parentesco = PessoaAutorizada.Parentesco.valueOf(
+                    dados.getParentesco().toUpperCase().replace("Ã", "A")
+            );
+            pessoa.setParentesco(parentesco);
+            pessoa.setTelefone(dados.getTelefone());
+
+            pessoaAutorizadas.add(pessoa);
+            tablePessoasAutorizadas.refresh();
+
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao adicionar pessoa autorizada: " + e.getMessage());
+            mostrarMensagem("Erro", "Erro ao adicionar pessoa autorizada");
+        }
+    }
+
+    // Métodos de conversão (implemente conforme suas necessidades)
+    private MembroFamilia.SituacaoEscolar converterParaSituacaoEscolar(String escolaridade) {
+        // Implemente a lógica de conversão baseada nos valores do seu enum
+        return MembroFamilia.SituacaoEscolar.NAO_INFORMADO;
+    }
+
+    private MembroFamilia.SituacaoEmprego converterParaSituacaoEmprego(String emprego) {
+        // Implemente a lógica de conversão baseada nos valores do seu enum
+        return MembroFamilia.SituacaoEmprego.OUTRO;
+    }
+
 
     @FXML
     public void cancelarCadastro() {

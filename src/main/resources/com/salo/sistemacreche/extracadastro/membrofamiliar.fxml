@@ -26,11 +26,11 @@
             </VBox>
             <VBox spacing="3" GridPane.columnIndex="1" GridPane.rowIndex="1">
                 <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Escolaridade" />
-                <TextField fx:id="fieldEscolaridade" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5;" />
+                <ComboBox fx:id="comboEscolaridade" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5;" />
             </VBox>
             <VBox spacing="3" GridPane.columnIndex="0" GridPane.rowIndex="2">
-                <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Emprego" />
-                <TextField fx:id="fieldEmprego" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5;" />
+                <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Situação de Emprego" />
+                <ComboBox fx:id="comboEmprego" prefHeight="35.0" style="-fx-background-color: white; -fx-border-color: #c8e1e6; -fx-border-radius: 5;" />
             </VBox>
             <VBox spacing="3" GridPane.columnIndex="1" GridPane.rowIndex="2">
                 <Label style="-fx-text-fill: #0f766e; -fx-font-size: 12;" text="Renda (R$)" />

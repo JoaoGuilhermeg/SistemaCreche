@@ -1,9 +1,17 @@
 package com.salo.sistemacreche.controller.extracadastro;
 
+import com.salo.sistemacreche.dao.DBConnection;
+import com.salo.sistemacreche.entidades.Pessoa;
+import com.salo.sistemacreche.entidades.PessoaAutorizada;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+
+import java.sql.Date;
+import java.time.LocalDate;
 
 public class PessoaAutorizadaController {
 
@@ -14,6 +22,7 @@ public class PessoaAutorizadaController {
 
     private Stage dialogStage;
     private boolean salvo = false;
+    private PessoaAutorizada pessoaAutorizadaSalva;
 
     @FXML
     public void initialize() {
@@ -31,41 +40,85 @@ public class PessoaAutorizadaController {
         return salvo;
     }
 
+    public PessoaAutorizada getPessoaAutorizadaSalva() {
+        return pessoaAutorizadaSalva;
+    }
+
     @FXML
     private void salvarPessoaAutorizada() {
         if (validarCampos()) {
+            EntityManager em = null;
+            EntityTransaction transaction = null;
+
             try {
-                // Pega todos os dados FORMATADOS para o banco
-                String nomeFormatado = getNomeFormatadoParaBanco();
-                String parentescoFormatado = getParentescoFormatadoParaBanco();
-                String rgFormatado = getRgFormatadoParaBanco();
-                String telefoneFormatado = getTelefoneFormatadoParaBanco();
+                em = DBConnection.getEntityManager();
+                transaction = em.getTransaction();
+                transaction.begin();
+
+                // 1. Criar e salvar a Pessoa
+                Pessoa pessoa = new Pessoa();
+                pessoa.setNome(getNomeFormatadoParaBanco());
+                pessoa.setRg(getRgFormatadoParaBanco());
+                pessoa.setTelefone(getTelefoneFormatadoParaBanco());
+                pessoa.setDataNascimento(Date.valueOf(LocalDate.now().minusYears(25))); // Data padrão
+                pessoa.setCpf(gerarCpfTemporario()); // CPF temporário único
+                pessoa.setEmail(""); // Email vazio
+                pessoa.setOutroContato(""); // Outro contato vazio
+
+                em.persist(pessoa);
+
+                // 2. Criar Pessoa Autorizada (a criança será definida na matrícula)
+                PessoaAutorizada pessoaAutorizada = new PessoaAutorizada();
+                pessoaAutorizada.setPessoa(pessoa);
+
+                // Converte parentesco para enum
+                PessoaAutorizada.Parentesco parentescoEnum = converterStringParaParentesco(getParentescoFormatadoParaBanco());
+                pessoaAutorizada.setParentesco(parentescoEnum);
+                pessoaAutorizada.setTelefone(getTelefoneFormatadoParaBanco());
+
+                em.persist(pessoaAutorizada);
+                this.pessoaAutorizadaSalva = pessoaAutorizada;
+
+                transaction.commit();
 
                 // Exibe no console
-                System.out.println("=== DADOS PESSOA AUTORIZADA PARA O BANCO ===");
-                System.out.println("Nome: " + nomeFormatado);
-                System.out.println("Parentesco: " + parentescoFormatado);
-                System.out.println("RG: " + rgFormatado);
-                System.out.println("Telefone: " + telefoneFormatado);
-
-                // TODO: Salvar no banco de dados
-                // seuRepository.salvarPessoaAutorizada(
-                //     nomeFormatado, parentescoFormatado, rgFormatado, telefoneFormatado
-                // );
+                System.out.println("✅ DADOS PESSOA AUTORIZADA SALVOS NO BANCO:");
+                System.out.println("📝 Pessoa ID: " + pessoa.getId());
+                System.out.println("👤 Nome: " + pessoa.getNome());
+                System.out.println("🆔 RG: " + pessoa.getRg());
+                System.out.println("📞 Telefone: " + pessoa.getTelefone());
+                System.out.println("👪 Parentesco: " + pessoaAutorizada.getParentesco());
+                System.out.println("💾 Pessoa Autorizada ID: " + pessoaAutorizada.getId());
 
                 this.salvo = true;
+                mostrarMensagemSucesso("Pessoa autorizada salva com sucesso!");
                 fecharDialog();
 
             } catch (Exception e) {
-                mostrarErro("Erro ao salvar: " + e.getMessage());
+                if (transaction != null && transaction.isActive()) {
+                    transaction.rollback();
+                }
+                System.err.println("❌ Erro ao salvar pessoa autorizada: " + e.getMessage());
                 e.printStackTrace();
+                mostrarErro("Erro ao salvar pessoa autorizada: " + e.getMessage());
+            } finally {
+                if (em != null && em.isOpen()) {
+                    em.close();
+                }
             }
         }
+    }
+
+    // Gera CPF temporário único baseado no timestamp
+    private String gerarCpfTemporario() {
+        long timestamp = System.currentTimeMillis() % 1000000000L;
+        return String.format("%011d", timestamp);
     }
 
     @FXML
     private void cancelarPessoaAutorizada() {
         this.salvo = false;
+        this.pessoaAutorizadaSalva = null;
         fecharDialog();
     }
 
@@ -142,7 +195,6 @@ public class PessoaAutorizadaController {
     // === FORMATAÇÃO DE RG ===
     private String formatarRG(String rg) {
         String rgLimpo = rg.replaceAll("[^0-9Xx]", "").toUpperCase();
-        // Você pode adicionar formatação específica se quiser
         return rgLimpo;
     }
 
@@ -315,9 +367,50 @@ public class PessoaAutorizadaController {
         });
     }
 
+    // === MÉTODO PARA CONVERTER STRING PARA ENUM PARENTESCO ===
+    private PessoaAutorizada.Parentesco converterStringParaParentesco(String parentesco) {
+        if (parentesco == null) return PessoaAutorizada.Parentesco.NENHUM;
+
+        String parentescoUpper = parentesco.toUpperCase()
+                .replace("Ã", "A")
+                .replace("Õ", "O")
+                .replace("Â", "A")
+                .replace("Ô", "O");
+
+        try {
+            return PessoaAutorizada.Parentesco.valueOf(parentescoUpper);
+        } catch (IllegalArgumentException e) {
+            // Mapeamento para valores comuns
+            switch (parentescoUpper) {
+                case "MAE": case "MÃE": return PessoaAutorizada.Parentesco.MAE;
+                case "PAI": return PessoaAutorizada.Parentesco.PAI;
+                case "IRMAO": case "IRMÃO": return PessoaAutorizada.Parentesco.IRMAO;
+                case "IRMA": case "IRMÃ": return PessoaAutorizada.Parentesco.IRMA;
+                case "AVO": case "AVÔ": case "AVÓ": return PessoaAutorizada.Parentesco.AVO;
+                case "TIO": return PessoaAutorizada.Parentesco.TIO;
+                case "TIA": return PessoaAutorizada.Parentesco.TIA;
+                case "PRIMO": return PessoaAutorizada.Parentesco.PRIMO;
+                case "PRIMA": return PessoaAutorizada.Parentesco.PRIMA;
+                case "RESPONSAVEL LEGAL": case "RESPONSÁVEL LEGAL":
+                    return PessoaAutorizada.Parentesco.RESPONSAVEL_LEGAL;
+                //case "MADRINHA": return PessoaAutorizada.Parentesco.OUTRO;
+                //case "PADRINHO": return PessoaAutorizada.Parentesco.OUTRO;
+                default: return PessoaAutorizada.Parentesco.NENHUM;
+            }
+        }
+    }
+
     private void mostrarErro(String mensagem) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Erro de Validação");
+        alert.setHeaderText(null);
+        alert.setContentText(mensagem);
+        alert.showAndWait();
+    }
+
+    private void mostrarMensagemSucesso(String mensagem) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Sucesso");
         alert.setHeaderText(null);
         alert.setContentText(mensagem);
         alert.showAndWait();
@@ -337,6 +430,16 @@ public class PessoaAutorizadaController {
                 getRgFormatadoParaBanco(),
                 getTelefoneFormatadoParaBanco()
         );
+    }
+
+    // Método para limpar os campos
+    public void limparCampos() {
+        fieldNome.clear();
+        fieldParentesco.clear();
+        fieldRg.clear();
+        fieldTelefone.clear();
+        this.salvo = false;
+        this.pessoaAutorizadaSalva = null;
     }
 
     // Classe interna para transportar dados

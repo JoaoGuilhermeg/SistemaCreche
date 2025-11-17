@@ -1,10 +1,18 @@
 package com.salo.sistemacreche.controller.extracadastro;
 
-
+import com.salo.sistemacreche.dao.DBConnection;
+import com.salo.sistemacreche.entidades.Pessoa;
+import com.salo.sistemacreche.entidades.Responsavel;
+import com.salo.sistemacreche.entidades.TipoResponsavel;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+
+import java.sql.Date;
+import java.time.LocalDate;
 
 public class FiliacaoResponsavelController {
 
@@ -36,36 +44,66 @@ public class FiliacaoResponsavelController {
     @FXML
     private void btnSalvarResponsavel() {
         if (validarCampos()) {
+            EntityManager em = null;
+            EntityTransaction transaction = null;
+
             try {
-                // Pega todos os dados FORMATADOS para o banco
-                String nomeFormatado = getNomeFormatadoParaBanco();
-                String cpfFormatado = getCpfFormatadoParaBanco();
-                String rgFormatado = getRgFormatadoParaBanco();
-                String celularFormatado = getCelularFormatadoParaBanco();
-                String outroContatoFormatado = getOutroContatoFormatadoParaBanco();
-                String trabalhoFormatado = fieldTrabalho.getText().trim();
+                em = DBConnection.getEntityManager();
+                transaction = em.getTransaction();
+                transaction.begin();
+
+                // 1. Criar e salvar a Pessoa
+                Pessoa pessoa = new Pessoa();
+                pessoa.setNome(getNomeFormatadoParaBanco());
+                pessoa.setCpf(getCpfFormatadoParaBanco().replaceAll("[^0-9]", "")); // Remove formatação
+                pessoa.setRg(getRgFormatadoParaBanco());
+                pessoa.setTelefone(getCelularFormatadoParaBanco());
+                pessoa.setOutroContato(getOutroContatoFormatadoParaBanco());
+                pessoa.setDataNascimento(Date.valueOf(LocalDate.now().minusYears(30))); // Data padrão
+                pessoa.setEmail(""); // Email vazio por padrão
+
+                em.persist(pessoa);
+
+                // 2. Criar e salvar o Responsável
+                Responsavel responsavel = new Responsavel();
+                responsavel.setPessoa(pessoa);
+                responsavel.setTelefone(getCelularFormatadoParaBanco());
+                responsavel.setLocalTrabalho(fieldTrabalho.getText().trim());
+                responsavel.setAuxilioGov(false); // Valor padrão
+                responsavel.setNumeroNis(""); // NIS vazio por padrão
+
+                // Buscar TipoResponsavel (assumindo que existe um tipo com ID 3 para "Responsável")
+                TipoResponsavel tipoResponsavel = em.find(TipoResponsavel.class, 3L);
+                if (tipoResponsavel != null) {
+                    responsavel.setTipoResponsavel(tipoResponsavel);
+                }
+
+                em.persist(responsavel);
+
+                transaction.commit();
 
                 // Exibe no console
-                System.out.println("=== DADOS PARA O BANCO ===");
-                System.out.println("Nome: " + nomeFormatado);
-                System.out.println("CPF: " + cpfFormatado);
-                System.out.println("RG: " + rgFormatado);
-                System.out.println("Celular: " + celularFormatado);
-                System.out.println("Outro Contato: " + outroContatoFormatado);
-                System.out.println("Trabalho: " + trabalhoFormatado);
-
-                // TODO: Salvar no banco de dados
-                // seuRepository.salvarResponsavel(
-                //     nomeFormatado, cpfFormatado, rgFormatado,
-                //     celularFormatado, outroContatoFormatado, trabalhoFormatado
-                // );
+                System.out.println("=== DADOS SALVOS NO BANCO ===");
+                System.out.println("Pessoa ID: " + pessoa.getId());
+                System.out.println("Nome: " + pessoa.getNome());
+                System.out.println("CPF: " + pessoa.getCpf());
+                System.out.println("RG: " + pessoa.getRg());
+                System.out.println("Telefone: " + pessoa.getTelefone());
+                System.out.println("Responsável ID: " + responsavel.getId());
 
                 this.salvo = true;
                 fecharDialog();
 
             } catch (Exception e) {
-                mostrarErro("Erro ao salvar: " + e.getMessage());
+                if (transaction != null && transaction.isActive()) {
+                    transaction.rollback();
+                }
+                mostrarErro("Erro ao salvar responsável: " + e.getMessage());
                 e.printStackTrace();
+            } finally {
+                if (em != null && em.isOpen()) {
+                    em.close();
+                }
             }
         }
     }
