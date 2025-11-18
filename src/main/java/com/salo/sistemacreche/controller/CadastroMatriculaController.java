@@ -510,6 +510,8 @@ public class CadastroMatriculaController {
             // Se salvou, você pode adicionar à lista ou fazer algo com os dados
             if (controller.isSalvo()) {
                 // Recarregar a lista de responsáveis após salvar
+                carregarMaes();
+                carregarPais();
                 carregarResponsaveis();
                 System.out.println("✅ Responsável salvo com sucesso!");
             }
@@ -899,12 +901,10 @@ public class CadastroMatriculaController {
             MembroFamilia membro = new MembroFamilia();
 
             // Converte string para enum Parentesco
-            MembroFamilia.Parentesco parentesco = MembroFamilia.Parentesco.valueOf(
-                    dados.getParentesco().toUpperCase().replace("Ã", "A")
-            );
+            MembroFamilia.Parentesco parentesco = converterStringParaParentesco(dados.getParentesco());
             membro.setParentesco(parentesco);
 
-            // Converte string para enum SituacaoEscolar (você precisará mapear isso)
+            // Converte string para enum SituacaoEscolar
             MembroFamilia.SituacaoEscolar escolaridade = converterParaSituacaoEscolar(dados.getEscolaridade());
             membro.setSituacaoEscolar(escolaridade);
 
@@ -912,9 +912,16 @@ public class CadastroMatriculaController {
             MembroFamilia.SituacaoEmprego emprego = converterParaSituacaoEmprego(dados.getEmprego());
             membro.setSituacaoEmprego(emprego);
 
-            // Converte renda para BigDecimal
+            // Converte renda para BigDecimal - CORREÇÃO AQUI
             if (!dados.getRenda().isEmpty()) {
-                membro.setRenda(new java.math.BigDecimal(dados.getRenda()));
+                try {
+                    // Substitui vírgula por ponto para conversão numérica
+                    String rendaFormatada = dados.getRenda().replace(",", ".");
+                    membro.setRenda(new java.math.BigDecimal(rendaFormatada));
+                } catch (NumberFormatException e) {
+                    System.err.println("❌ Erro ao converter renda: " + dados.getRenda());
+                    membro.setRenda(java.math.BigDecimal.ZERO);
+                }
             } else {
                 membro.setRenda(java.math.BigDecimal.ZERO);
             }
@@ -922,9 +929,13 @@ public class CadastroMatriculaController {
             membrosFamiliares.add(membro);
             tableComposicaoFamiliar.refresh();
 
+            System.out.println("✅ Membro familiar adicionado: " + dados.getNome());
+            System.out.println("💰 Renda convertida: " + membro.getRenda());
+
         } catch (Exception e) {
             System.err.println("❌ Erro ao adicionar membro familiar: " + e.getMessage());
-            mostrarMensagem("Erro", "Erro ao adicionar membro familiar");
+            e.printStackTrace();
+            mostrarMensagem("Erro", "Erro ao adicionar membro familiar: " + e.getMessage());
         }
     }
 
@@ -967,6 +978,32 @@ public class CadastroMatriculaController {
     private MembroFamilia.SituacaoEmprego converterParaSituacaoEmprego(String emprego) {
         // Implemente a lógica de conversão baseada nos valores do seu enum
         return MembroFamilia.SituacaoEmprego.OUTRO;
+    }
+
+    private MembroFamilia.Parentesco converterStringParaParentesco(String parentesco) {
+        if (parentesco == null) return MembroFamilia.Parentesco.OUTRO;
+
+        String parentescoUpper = parentesco.toUpperCase()
+                .replace("Ã", "A")
+                .replace("Õ", "O")
+                .replace("Â", "A")
+                .replace("Ô", "O");
+
+        try {
+            return MembroFamilia.Parentesco.valueOf(parentescoUpper);
+        } catch (IllegalArgumentException e) {
+            // Mapeamento para valores comuns
+            switch (parentescoUpper) {
+                case "MAE": case "MÃE": return MembroFamilia.Parentesco.MAE;
+                case "PAI": return MembroFamilia.Parentesco.PAI;
+                case "IRMAO": case "IRMÃO": return MembroFamilia.Parentesco.IRMAO;
+                case "IRMA": case "IRMÃ": return MembroFamilia.Parentesco.IRMA; // ← CORREÇÃO AQUI
+                case "AVO": case "AVÔ": case "AVÓ": return MembroFamilia.Parentesco.AVO;
+                case "TIO": return MembroFamilia.Parentesco.TIO;
+                case "TIA": return MembroFamilia.Parentesco.TIA;
+                default: return MembroFamilia.Parentesco.OUTRO;
+            }
+        }
     }
 
 

@@ -124,7 +124,7 @@ public class MembroFamiliarController {
         return salvo;
     }
 
-    // Método para limpar os campos (opcional, mas útil)
+    // Método para limpar os campos
     public void limparCampos() {
         fieldNome.clear();
         fieldIdade.clear();
@@ -135,7 +135,7 @@ public class MembroFamiliarController {
         this.salvo = false;
     }
 
-    // Método para preencher os campos se for edição (opcional)
+    // Método para preencher os campos se for edição
     public void setDadosMembro(DadosMembroFamiliar dados) {
         fieldNome.setText(dados.getNome());
         fieldIdade.setText(dados.getIdade());
@@ -407,7 +407,7 @@ public class MembroFamiliarController {
             double valorDouble = Double.parseDouble(valor);
             return String.format("%.2f", valorDouble);
         } catch (NumberFormatException e) {
-            return "0.00"; // Retorna zero em caso de erro
+            return "0.00"; // Valor padrão em caso de erro
         }
     }
 
