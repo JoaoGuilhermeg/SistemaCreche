@@ -10,6 +10,7 @@ import com.salo.sistemacreche.entidades.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -574,10 +575,14 @@ public class CadastroMatriculaController {
 
             dialogStage.showAndWait();
 
-            // Se salvou, você pode adicionar à lista ou fazer algo com os dados
+            // Se salvou, adiciona à tabela
             if (controller.isSalvo()) {
-                System.out.println("✅ Pessoa autorizada salva com sucesso!");
-                // TODO: Adicionar à tabela de pessoas autorizadas
+                PessoaAutorizada pessoaSalva = controller.getPessoaAutorizadaSalva();
+                if (pessoaSalva != null) {
+                    adicionarPessoaAutorizada(pessoaSalva);
+                    System.out.println("✅ Pessoa autorizada adicionada: " +
+                            pessoaSalva.getPessoa().getNome());
+                }
             }
 
         } catch (IOException e) {
@@ -608,12 +613,13 @@ public class CadastroMatriculaController {
         colParentesco.setCellValueFactory(new PropertyValueFactory<>("parentesco"));
         colParentesco.setPrefWidth(100);
 
+        // 🔥 CORREÇÃO AQUI: Use os nomes corretos das propriedades
         TableColumn<MembroFamilia, String> colEscolaridade = new TableColumn<>("Escolaridade");
-        colEscolaridade.setCellValueFactory(new PropertyValueFactory<>("escolaridade"));
+        colEscolaridade.setCellValueFactory(new PropertyValueFactory<>("situacaoEscolar"));
         colEscolaridade.setPrefWidth(120);
 
         TableColumn<MembroFamilia, String> colEmprego = new TableColumn<>("Emprego");
-        colEmprego.setCellValueFactory(new PropertyValueFactory<>("emprego"));
+        colEmprego.setCellValueFactory(new PropertyValueFactory<>("situacaoEmprego"));
         colEmprego.setPrefWidth(120);
 
         TableColumn<MembroFamilia, String> colRenda = new TableColumn<>("Renda");
@@ -633,19 +639,39 @@ public class CadastroMatriculaController {
 
         // Cria as colunas para pessoas autorizadas
         TableColumn<PessoaAutorizada, String> colNome = new TableColumn<>("Nome");
-        colNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
+        colNome.setCellValueFactory(cellData -> {
+            PessoaAutorizada pessoaAut = cellData.getValue();
+            return new SimpleStringProperty(
+                    pessoaAut.getPessoa() != null ? pessoaAut.getPessoa().getNome() : ""
+            );
+        });
         colNome.setPrefWidth(150);
 
         TableColumn<PessoaAutorizada, String> colParentesco = new TableColumn<>("Parentesco");
-        colParentesco.setCellValueFactory(new PropertyValueFactory<>("parentesco"));
+        colParentesco.setCellValueFactory(cellData -> {
+            PessoaAutorizada pessoaAut = cellData.getValue();
+            return new SimpleStringProperty(
+                    pessoaAut.getParentesco() != null ? pessoaAut.getParentesco().toString() : ""
+            );
+        });
         colParentesco.setPrefWidth(100);
 
         TableColumn<PessoaAutorizada, String> colRg = new TableColumn<>("RG");
-        colRg.setCellValueFactory(new PropertyValueFactory<>("rg"));
+        colRg.setCellValueFactory(cellData -> {
+            PessoaAutorizada pessoaAut = cellData.getValue();
+            return new SimpleStringProperty(
+                    pessoaAut.getPessoa() != null ? pessoaAut.getPessoa().getRg() : ""
+            );
+        });
         colRg.setPrefWidth(120);
 
         TableColumn<PessoaAutorizada, String> colTelefone = new TableColumn<>("Telefone");
-        colTelefone.setCellValueFactory(new PropertyValueFactory<>("telefone"));
+        colTelefone.setCellValueFactory(cellData -> {
+            PessoaAutorizada pessoaAut = cellData.getValue();
+            return new SimpleStringProperty(
+                    pessoaAut.getPessoa() != null ? pessoaAut.getPessoa().getTelefone() : ""
+            );
+        });
         colTelefone.setPrefWidth(120);
 
         // Adiciona as colunas à tabela
@@ -852,14 +878,15 @@ public class CadastroMatriculaController {
 
     private void salvarPessoasAutorizadas(EntityManager em, Crianca crianca) {
         for (PessoaAutorizada pessoa : pessoaAutorizadas) {
-            // Cria uma nova instância para o banco
-            PessoaAutorizada novaPessoa = new PessoaAutorizada();
-            novaPessoa.setCrianca(crianca);
-            novaPessoa.setPessoa(pessoa.getPessoa());
-            novaPessoa.setParentesco(pessoa.getParentesco());
-            novaPessoa.setTelefone(pessoa.getTelefone());
+            // Associa a criança à pessoa autorizada
+            pessoa.setCrianca(crianca);
 
-            em.persist(novaPessoa);
+            // Se a pessoa já foi persistida (tem ID), faz merge
+            if (pessoa.getId() != null) {
+                em.merge(pessoa);
+            } else {
+                em.persist(pessoa);
+            }
         }
 
         System.out.println("✅ " + pessoaAutorizadas.size() + " pessoa(s) autorizada(s) salva(s)");
@@ -900,6 +927,16 @@ public class CadastroMatriculaController {
         try {
             MembroFamilia membro = new MembroFamilia();
 
+            // 🔥 AGORA TEMOS NOME E IDADE
+            membro.setNome(dados.getNome());
+
+            // Converte idade de String para Integer
+            try {
+                membro.setIdade(Integer.parseInt(dados.getIdade()));
+            } catch (NumberFormatException e) {
+                membro.setIdade(0); // Valor padrão se conversão falhar
+            }
+
             // Converte string para enum Parentesco
             MembroFamilia.Parentesco parentesco = converterStringParaParentesco(dados.getParentesco());
             membro.setParentesco(parentesco);
@@ -912,14 +949,12 @@ public class CadastroMatriculaController {
             MembroFamilia.SituacaoEmprego emprego = converterParaSituacaoEmprego(dados.getEmprego());
             membro.setSituacaoEmprego(emprego);
 
-            // Converte renda para BigDecimal - CORREÇÃO AQUI
+            // Converte renda para BigDecimal
             if (!dados.getRenda().isEmpty()) {
                 try {
-                    // Substitui vírgula por ponto para conversão numérica
                     String rendaFormatada = dados.getRenda().replace(",", ".");
                     membro.setRenda(new java.math.BigDecimal(rendaFormatada));
                 } catch (NumberFormatException e) {
-                    System.err.println("❌ Erro ao converter renda: " + dados.getRenda());
                     membro.setRenda(java.math.BigDecimal.ZERO);
                 }
             } else {
@@ -929,8 +964,7 @@ public class CadastroMatriculaController {
             membrosFamiliares.add(membro);
             tableComposicaoFamiliar.refresh();
 
-            System.out.println("✅ Membro familiar adicionado: " + dados.getNome());
-            System.out.println("💰 Renda convertida: " + membro.getRenda());
+            System.out.println("✅ Membro familiar adicionado: " + dados.getNome() + ", Idade: " + dados.getIdade());
 
         } catch (Exception e) {
             System.err.println("❌ Erro ao adicionar membro familiar: " + e.getMessage());
@@ -940,44 +974,44 @@ public class CadastroMatriculaController {
     }
 
     // Método para adicionar pessoa autorizada à tabela
-    public void adicionarPessoaAutorizada(PessoaAutorizadaController.DadosPessoaAutorizada dados) {
+    public void adicionarPessoaAutorizada(PessoaAutorizada pessoaAutorizada) {
         try {
-            PessoaAutorizada pessoa = new PessoaAutorizada();
-
-            // Cria uma nova Pessoa
-            Pessoa novaPessoa = new Pessoa();
-            novaPessoa.setNome(dados.getNome());
-            novaPessoa.setRg(dados.getRg());
-            novaPessoa.setTelefone(dados.getTelefone());
-            // Você precisará definir outros campos obrigatórios da Pessoa
-
-            pessoa.setPessoa(novaPessoa);
-
-            // Converte string para enum Parentesco
-            PessoaAutorizada.Parentesco parentesco = PessoaAutorizada.Parentesco.valueOf(
-                    dados.getParentesco().toUpperCase().replace("Ã", "A")
-            );
-            pessoa.setParentesco(parentesco);
-            pessoa.setTelefone(dados.getTelefone());
-
-            pessoaAutorizadas.add(pessoa);
+            // Adiciona diretamente a pessoa autorizada salva no banco
+            pessoaAutorizadas.add(pessoaAutorizada);
             tablePessoasAutorizadas.refresh();
+
+            System.out.println("✅ Pessoa autorizada adicionada à tabela: " +
+                    pessoaAutorizada.getPessoa().getNome());
 
         } catch (Exception e) {
             System.err.println("❌ Erro ao adicionar pessoa autorizada: " + e.getMessage());
-            mostrarMensagem("Erro", "Erro ao adicionar pessoa autorizada");
+            e.printStackTrace();
+            mostrarMensagem("Erro", "Erro ao adicionar pessoa autorizada: " + e.getMessage());
         }
     }
 
-    // Métodos de conversão (implemente conforme suas necessidades)
+    // Método para converter string para enum SituacaoEscolar (CORRIGIDO)
     private MembroFamilia.SituacaoEscolar converterParaSituacaoEscolar(String escolaridade) {
-        // Implemente a lógica de conversão baseada nos valores do seu enum
-        return MembroFamilia.SituacaoEscolar.NAO_INFORMADO;
+        if (escolaridade == null) return MembroFamilia.SituacaoEscolar.NAO_INFORMADO;
+
+        try {
+            return MembroFamilia.SituacaoEscolar.valueOf(escolaridade);
+        } catch (IllegalArgumentException e) {
+            System.err.println("❌ Valor de escolaridade não encontrado: " + escolaridade);
+            return MembroFamilia.SituacaoEscolar.NAO_INFORMADO;
+        }
     }
 
+    // Método para converter string para enum SituacaoEmprego (CORRIGIDO)
     private MembroFamilia.SituacaoEmprego converterParaSituacaoEmprego(String emprego) {
-        // Implemente a lógica de conversão baseada nos valores do seu enum
-        return MembroFamilia.SituacaoEmprego.OUTRO;
+        if (emprego == null) return MembroFamilia.SituacaoEmprego.OUTRO;
+
+        try {
+            return MembroFamilia.SituacaoEmprego.valueOf(emprego);
+        } catch (IllegalArgumentException e) {
+            System.err.println("❌ Valor de emprego não encontrado: " + emprego);
+            return MembroFamilia.SituacaoEmprego.OUTRO;
+        }
     }
 
     private MembroFamilia.Parentesco converterStringParaParentesco(String parentesco) {

@@ -19,7 +19,7 @@ public class MembroFamiliarController {
 
     @FXML private TextField fieldNome;
     @FXML private TextField fieldIdade;
-    @FXML private TextField fieldParentesco;
+    @FXML private ComboBox<String> comboParentesco;
     @FXML private ComboBox<String> comboEscolaridade;
     @FXML private ComboBox<String> comboEmprego;
     @FXML private TextField fieldRenda;
@@ -31,53 +31,67 @@ public class MembroFamiliarController {
     public void initialize() {
         aplicarMascaraNome();
         aplicarMascaraIdade();
-        aplicarMascaraParentesco();
         aplicarMascaraRenda();
 
+        carregarParentescos();
         carregarSituacaoEscolar();
         carregarSituacaoEmprego();
+    }
+
+    private void carregarParentescos() {
+        comboParentesco.getItems().addAll(
+                "MAE",
+                "PAI",
+                "IRMAO",
+                "IRMA",
+                "AVO",
+                "TIO",
+                "TIA",
+                "RESPONSAVEL_LEGAL",
+                "OUTRO"
+        );
     }
 
     private void carregarSituacaoEscolar() {
         comboEscolaridade.getItems().addAll(
                 "CRECHE",
-                "PRÉ-ESCOLA",
-                "ENSINO FUNDAMENTAL 1 (1º-5º ANO)",
-                "ENSINO FUNDAMENTAL 2 (6º-9º ANO)",
-                "ENSINO FUNDAMENTAL INCOMPLETO",
-                "ENSINO FUNDAMENTAL COMPLETO",
-                "ENSINO MÉDIO INCOMPLETO",
-                "ENSINO MÉDIO COMPLETO",
-                "ENSINO TÉCNICO INTEGRADO AO MÉDIO",
-                "ENSINO MÉDIO PROFISSIONALIZANTE",
-                "ENSINO SUPERIOR INCOMPLETO",
-                "ENSINO SUPERIOR COMPLETO",
-                "PÓS-GRADUAÇÃO LATO SENSU (ESPECIALIZAÇÃO)",
+                "PRE_ESCOLA",
+                "ENSINO_FUNDAMENTAL_1_1_5_ANO",
+                "ENSINO_FUNDAMENTAL_2_6_9_ANO",
+                "ENSINO_FUNDAMENTAL_INCOMPLETO",
+                "ENSINO_FUNDAMENTAL_COMPLETO",
+                "ENSINO_MEDIO_INCOMPLETO",
+                "ENSINO_MEDIO_COMPLETO",
+                "ENSINO_TECNICO_INTEGRADO_MEDIO",
+                "ENSINO_MEDIO_PROFISSIONALIZANTE",
+                "ENSINO_SUPERIOR_INCOMPLETO",
+                "ENSINO_SUPERIOR_COMPLETO",
+                "POS_GRADUACAO_LATO_SENSU_ESPECIALIZACAO",
                 "MESTRADO",
                 "DOUTORADO",
-                "PÓS-DOUTORADO",
-                "EJA FUNDAMENTAL",
-                "EJA MÉDIO",
-                "ALFABETIZAÇÃO DE ADULTOS",
+                "POS_DOUTORADO",
+                "EJA_FUNDAMENTAL",
+                "EJA_MEDIO",
+                "ALFABETIZACAO_DE_ADULTOS",
                 "ANALFABETO",
-                "NÃO INFORMADO"
+                "NAO_INFORMADO"
         );
     }
 
     private void carregarSituacaoEmprego() {
         comboEmprego.getItems().addAll(
-                "EMPREGADO FORMAL",
-                "EMPREGADO INFORMAL",
-                "SERVIDOR PÚBLICO",
-                "AUTÔNOMO",
+                "EMPREGADO_FORMAL",
+                "EMPREGADO_INFORMAL",
+                "SERVIDOR_PUBLICO",
+                "AUTONOMO",
                 "EMPREGADOR",
                 "APOSENTADO",
                 "PENSIONISTA",
                 "DESEMPREGADO",
-                "DO LAR",
+                "DO_LAR",
                 "ESTUDANTE",
                 "BOLSISTA",
-                "INCAPAZ DE TRABALHAR",
+                "INCAPAZ_TRABALHAR",
                 "OUTRO"
         );
     }
@@ -89,7 +103,7 @@ public class MembroFamiliarController {
                 // Pega todos os dados FORMATADOS para o banco
                 String nomeFormatado = getNomeFormatadoParaBanco();
                 String idadeFormatada = getIdadeFormatadaParaBanco();
-                String parentescoFormatado = getParentescoFormatadoParaBanco();
+                String parentescoSelecionado = comboParentesco.getValue();
                 String escolaridadeSelecionada = comboEscolaridade.getValue();
                 String empregoSelecionado = comboEmprego.getValue();
                 String rendaFormatada = getRendaFormatadaParaBanco();
@@ -98,13 +112,10 @@ public class MembroFamiliarController {
                 System.out.println("=== DADOS MEMBRO FAMILIAR PARA O BANCO ===");
                 System.out.println("Nome: " + nomeFormatado);
                 System.out.println("Idade: " + idadeFormatada);
-                System.out.println("Parentesco: " + parentescoFormatado);
+                System.out.println("Parentesco: " + parentescoSelecionado);
                 System.out.println("Escolaridade: " + escolaridadeSelecionada);
                 System.out.println("Emprego: " + empregoSelecionado);
                 System.out.println("Renda: " + rendaFormatada);
-
-                // Aqui você salvaria no banco quando integrar com a matrícula
-                // Por enquanto apenas fecha o modal
 
                 this.salvo = true;
                 fecharDialog();
@@ -128,7 +139,7 @@ public class MembroFamiliarController {
     public void limparCampos() {
         fieldNome.clear();
         fieldIdade.clear();
-        fieldParentesco.clear();
+        comboParentesco.setValue(null);
         comboEscolaridade.setValue(null);
         comboEmprego.setValue(null);
         fieldRenda.setText("R$ ");
@@ -139,7 +150,7 @@ public class MembroFamiliarController {
     public void setDadosMembro(DadosMembroFamiliar dados) {
         fieldNome.setText(dados.getNome());
         fieldIdade.setText(dados.getIdade());
-        fieldParentesco.setText(dados.getParentesco());
+        comboParentesco.setValue(dados.getParentesco());
         comboEscolaridade.setValue(dados.getEscolaridade());
         comboEmprego.setValue(dados.getEmprego());
 
@@ -154,7 +165,6 @@ public class MembroFamiliarController {
             fieldRenda.setText("R$ ");
         }
     }
-
 
     @FXML
     private void btnCancelarMembro() {
@@ -195,14 +205,9 @@ public class MembroFamiliarController {
         }
 
         // === PARENTESCO ===
-        if (fieldParentesco.getText().trim().isEmpty()) {
+        if (comboParentesco.getValue() == null) {
             mostrarErro("Parentesco é obrigatório!");
-            fieldParentesco.requestFocus();
-            return false;
-        }
-        if (!validarParentesco(fieldParentesco.getText())) {
-            mostrarErro("Parentesco deve conter apenas letras!\nEx: Pai, Mãe, Irmão, Avó");
-            fieldParentesco.requestFocus();
+            comboParentesco.requestFocus();
             return false;
         }
 
@@ -213,10 +218,15 @@ public class MembroFamiliarController {
             return false;
         }
 
+        // === EMPREGO ===
+        if (comboEmprego.getValue() == null) {
+            mostrarErro("Situação de emprego é obrigatória!");
+            comboEmprego.requestFocus();
+            return false;
+        }
 
         // === RENDA ===
-        if (!fieldRenda.getText().trim().isEmpty() &&
-                !validarRenda(fieldRenda.getText())) {
+        if (!fieldRenda.getText().trim().isEmpty() && !validarRenda(fieldRenda.getText())) {
             mostrarErro("Renda inválida!\nUse apenas números e vírgula.\nEx: 2500,00");
             fieldRenda.requestFocus();
             return false;
@@ -311,39 +321,6 @@ public class MembroFamiliarController {
         return formatarIdade(fieldIdade.getText());
     }
 
-    // === VALIDAÇÃO DE PARENTESCO ===
-    private boolean validarParentesco(String parentesco) {
-        if (parentesco == null || parentesco.trim().isEmpty()) {
-            return false;
-        }
-
-        // Remove espaços extras
-        String parentescoLimpo = parentesco.trim().replaceAll("\\s+", " ");
-
-        // Verifica se tem apenas letras e espaços
-        return parentescoLimpo.matches("[a-zA-ZÀ-ÿ\\s]+");
-    }
-
-    // === FORMATAÇÃO DE PARENTESCO ===
-    private String formatarParentesco(String parentesco) {
-        if (parentesco == null) return "";
-
-        // Remove espaços extras e formata
-        String parentescoLimpo = parentesco.trim().replaceAll("\\s+", " ");
-
-        // Capitaliza a primeira letra
-        if (!parentescoLimpo.isEmpty()) {
-            return parentescoLimpo.substring(0, 1).toUpperCase() +
-                    parentescoLimpo.substring(1).toLowerCase();
-        }
-
-        return parentescoLimpo;
-    }
-
-    public String getParentescoFormatadoParaBanco() {
-        return formatarParentesco(fieldParentesco.getText());
-    }
-
     // === VALIDAÇÃO DE RENDA ===
     private boolean validarRenda(String renda) {
         if (renda == null || renda.trim().isEmpty()) return true; // Não é obrigatório
@@ -426,15 +403,6 @@ public class MembroFamiliarController {
             // Apenas permite números (até 3 dígitos)
             if (!newValue.matches("\\d{0,3}")) {
                 fieldIdade.setText(oldValue);
-            }
-        });
-    }
-
-    private void aplicarMascaraParentesco() {
-        fieldParentesco.textProperty().addListener((observable, oldValue, newValue) -> {
-            // Apenas permite letras e espaços
-            if (!newValue.matches("[a-zA-ZÀ-ÿ\\s]*")) {
-                fieldParentesco.setText(oldValue);
             }
         });
     }
@@ -525,7 +493,7 @@ public class MembroFamiliarController {
     // Getters para os dados
     public String getNome() { return fieldNome.getText(); }
     public String getIdade() { return fieldIdade.getText(); }
-    public String getParentesco() { return fieldParentesco.getText(); }
+    public String getParentesco() { return comboParentesco.getValue(); }
     public String getEscolaridade() { return comboEscolaridade.getValue(); }
     public String getEmprego() { return comboEmprego.getValue(); }
     public String getRenda() { return fieldRenda.getText(); }
@@ -535,7 +503,7 @@ public class MembroFamiliarController {
         return new DadosMembroFamiliar(
                 getNomeFormatadoParaBanco(),
                 getIdadeFormatadaParaBanco(),
-                getParentescoFormatadoParaBanco(),
+                comboParentesco.getValue(),
                 comboEscolaridade.getValue(),
                 comboEmprego.getValue(),
                 getRendaFormatadaParaBanco()

@@ -7,6 +7,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
@@ -16,7 +17,7 @@ import java.time.LocalDate;
 public class PessoaAutorizadaController {
 
     @FXML private TextField fieldNome;
-    @FXML private TextField fieldParentesco;
+    @FXML private ComboBox<String> comboParentesco;
     @FXML private TextField fieldRg;
     @FXML private TextField fieldTelefone;
 
@@ -29,7 +30,27 @@ public class PessoaAutorizadaController {
         aplicarMascaraTelefone();
         aplicarMascaraRG();
         aplicarMascaraNome();
-        aplicarMascaraParentesco();
+
+        // 🔥 REMOVIDO: aplicarMascaraParentesco();
+        // 🔥 ADICIONADO:
+        carregarParentescos();
+    }
+
+    // 🔥 NOVO MÉTODO: Carregar parentescos no ComboBox
+    private void carregarParentescos() {
+        comboParentesco.getItems().addAll(
+                "MAE",
+                "PAI",
+                "IRMAO",
+                "IRMA",
+                "AVO",
+                "TIO",
+                "TIA",
+                "RESPONSAVEL_LEGAL",
+                "PRIMO",
+                "PRIMA",
+                "NENHUM"
+        );
     }
 
     public void setDialogStage(Stage dialogStage) {
@@ -71,8 +92,8 @@ public class PessoaAutorizadaController {
                 PessoaAutorizada pessoaAutorizada = new PessoaAutorizada();
                 pessoaAutorizada.setPessoa(pessoa);
 
-                // Converte parentesco para enum
-                PessoaAutorizada.Parentesco parentescoEnum = converterStringParaParentesco(getParentescoFormatadoParaBanco());
+                // 🔥 AGORA USA O VALOR DIRETO DO COMBOBOX
+                PessoaAutorizada.Parentesco parentescoEnum = converterStringParaParentesco(comboParentesco.getValue());
                 pessoaAutorizada.setParentesco(parentescoEnum);
                 pessoaAutorizada.setTelefone(getTelefoneFormatadoParaBanco());
 
@@ -142,15 +163,10 @@ public class PessoaAutorizadaController {
             return false;
         }
 
-        // === PARENTESCO ===
-        if (fieldParentesco.getText().trim().isEmpty()) {
+        // === PARENTESCO (AGORA COMBOBOX) ===
+        if (comboParentesco.getValue() == null) {
             mostrarErro("Parentesco é obrigatório!");
-            fieldParentesco.requestFocus();
-            return false;
-        }
-        if (!validarParentesco(fieldParentesco.getText())) {
-            mostrarErro("Parentesco deve conter apenas letras!\nEx: Avó, Tio, Madrinha");
-            fieldParentesco.requestFocus();
+            comboParentesco.requestFocus();
             return false;
         }
 
@@ -253,37 +269,13 @@ public class PessoaAutorizadaController {
         return formatarNome(fieldNome.getText());
     }
 
-    // === VALIDAÇÃO DE PARENTESCO ===
-    private boolean validarParentesco(String parentesco) {
-        if (parentesco == null || parentesco.trim().isEmpty()) {
-            return false;
-        }
+    // 🔥 REMOVIDO: validarParentesco() - não é mais necessário
 
-        // Remove espaços extras
-        String parentescoLimpo = parentesco.trim().replaceAll("\\s+", " ");
+    // 🔥 REMOVIDO: formatarParentesco() - não é mais necessário
 
-        // Verifica se tem apenas letras e espaços
-        return parentescoLimpo.matches("[a-zA-ZÀ-ÿ\\s]+");
-    }
-
-    // === FORMATAÇÃO DE PARENTESCO ===
-    private String formatarParentesco(String parentesco) {
-        if (parentesco == null) return "";
-
-        // Remove espaços extras e formata
-        String parentescoLimpo = parentesco.trim().replaceAll("\\s+", " ");
-
-        // Capitaliza a primeira letra
-        if (!parentescoLimpo.isEmpty()) {
-            return parentescoLimpo.substring(0, 1).toUpperCase() +
-                    parentescoLimpo.substring(1).toLowerCase();
-        }
-
-        return parentescoLimpo;
-    }
-
+    // 🔥 ATUALIZADO: Agora pega direto do ComboBox
     public String getParentescoFormatadoParaBanco() {
-        return formatarParentesco(fieldParentesco.getText());
+        return comboParentesco.getValue();
     }
 
     // === MÉTODO DE FORMATAÇÃO DE TELEFONE ===
@@ -358,45 +350,17 @@ public class PessoaAutorizadaController {
         });
     }
 
-    private void aplicarMascaraParentesco() {
-        fieldParentesco.textProperty().addListener((observable, oldValue, newValue) -> {
-            // Apenas permite letras e espaços
-            if (!newValue.matches("[a-zA-ZÀ-ÿ\\s]*")) {
-                fieldParentesco.setText(oldValue);
-            }
-        });
-    }
+    // 🔥 REMOVIDO: aplicarMascaraParentesco() - não é mais necessário
 
-    // === MÉTODO PARA CONVERTER STRING PARA ENUM PARENTESCO ===
+    // === MÉTODO PARA CONVERTER STRING PARA ENUM PARENTESCO (SIMPLIFICADO) ===
     private PessoaAutorizada.Parentesco converterStringParaParentesco(String parentesco) {
         if (parentesco == null) return PessoaAutorizada.Parentesco.NENHUM;
 
-        String parentescoUpper = parentesco.toUpperCase()
-                .replace("Ã", "A")
-                .replace("Õ", "O")
-                .replace("Â", "A")
-                .replace("Ô", "O");
-
         try {
-            return PessoaAutorizada.Parentesco.valueOf(parentescoUpper);
+            return PessoaAutorizada.Parentesco.valueOf(parentesco);
         } catch (IllegalArgumentException e) {
-            // Mapeamento para valores comuns
-            switch (parentescoUpper) {
-                case "MAE": case "MÃE": return PessoaAutorizada.Parentesco.MAE;
-                case "PAI": return PessoaAutorizada.Parentesco.PAI;
-                case "IRMAO": case "IRMÃO": return PessoaAutorizada.Parentesco.IRMAO;
-                case "IRMA": case "IRMÃ": return PessoaAutorizada.Parentesco.IRMA;
-                case "AVO": case "AVÔ": case "AVÓ": return PessoaAutorizada.Parentesco.AVO;
-                case "TIO": return PessoaAutorizada.Parentesco.TIO;
-                case "TIA": return PessoaAutorizada.Parentesco.TIA;
-                case "PRIMO": return PessoaAutorizada.Parentesco.PRIMO;
-                case "PRIMA": return PessoaAutorizada.Parentesco.PRIMA;
-                case "RESPONSAVEL LEGAL": case "RESPONSÁVEL LEGAL":
-                    return PessoaAutorizada.Parentesco.RESPONSAVEL_LEGAL;
-                //case "MADRINHA": return PessoaAutorizada.Parentesco.OUTRO;
-                //case "PADRINHO": return PessoaAutorizada.Parentesco.OUTRO;
-                default: return PessoaAutorizada.Parentesco.NENHUM;
-            }
+            System.err.println("❌ Valor de parentesco não encontrado: " + parentesco);
+            return PessoaAutorizada.Parentesco.NENHUM;
         }
     }
 
@@ -418,7 +382,7 @@ public class PessoaAutorizadaController {
 
     // Getters para os dados
     public String getNome() { return fieldNome.getText(); }
-    public String getParentesco() { return fieldParentesco.getText(); }
+    public String getParentesco() { return comboParentesco.getValue(); } // 🔥 ATUALIZADO
     public String getRg() { return fieldRg.getText(); }
     public String getTelefone() { return fieldTelefone.getText(); }
 
@@ -426,7 +390,7 @@ public class PessoaAutorizadaController {
     public DadosPessoaAutorizada getDadosPessoa() {
         return new DadosPessoaAutorizada(
                 getNomeFormatadoParaBanco(),
-                getParentescoFormatadoParaBanco(),
+                comboParentesco.getValue(), // 🔥 ATUALIZADO
                 getRgFormatadoParaBanco(),
                 getTelefoneFormatadoParaBanco()
         );
@@ -435,11 +399,19 @@ public class PessoaAutorizadaController {
     // Método para limpar os campos
     public void limparCampos() {
         fieldNome.clear();
-        fieldParentesco.clear();
+        comboParentesco.setValue(null); // 🔥 ATUALIZADO
         fieldRg.clear();
         fieldTelefone.clear();
         this.salvo = false;
         this.pessoaAutorizadaSalva = null;
+    }
+
+    // Método para preencher os campos se for edição
+    public void setDadosPessoa(DadosPessoaAutorizada dados) {
+        fieldNome.setText(dados.getNome());
+        comboParentesco.setValue(dados.getParentesco()); // 🔥 ATUALIZADO
+        fieldRg.setText(dados.getRg());
+        fieldTelefone.setText(dados.getTelefone());
     }
 
     // Classe interna para transportar dados

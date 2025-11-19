@@ -16,6 +16,13 @@ public class MembroFamilia {
     @JoinColumn(name = "ID_CRIANCA", nullable = false)
     private Crianca crianca;
 
+    // 🔥 NOVOS CAMPOS ADICIONADOS
+    @Column(name = "NOME", nullable = false, length = 150)
+    private String nome;
+
+    @Column(name = "IDADE", nullable = false)
+    private Integer idade;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "PARENTESCO")
     private Parentesco parentesco;
@@ -78,6 +85,22 @@ public class MembroFamilia {
 
     public void setCrianca(Crianca crianca) {
         this.crianca = crianca;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public Integer getIdade() {
+        return idade;
+    }
+
+    public void setIdade(Integer idade) {
+        this.idade = idade;
     }
 
     public Parentesco getParentesco() {
